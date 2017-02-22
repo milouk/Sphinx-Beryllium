@@ -17,6 +17,7 @@
 #include <linux/blkdev.h>
 #include <linux/pagevec.h>
 #include <linux/migrate.h>
+#include <linux/swap_slots.h>
 
 #include <asm/pgtable.h>
 
