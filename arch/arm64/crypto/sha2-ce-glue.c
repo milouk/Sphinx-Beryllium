@@ -17,9 +17,6 @@
 #include <linux/crypto.h>
 #include <linux/module.h>
 
-#define ASM_EXPORT(sym, val) \
-	asm(".globl " #sym "; .set " #sym ", %0" :: "I"(val));
-
 MODULE_DESCRIPTION("SHA-224/SHA-256 secure hash using ARMv8 Crypto Extensions");
 MODULE_AUTHOR("Ard Biesheuvel <ard.biesheuvel@linaro.org>");
 MODULE_LICENSE("GPL v2");
@@ -40,6 +37,11 @@ static inline void __cfi_sha2_ce_transform(struct sha256_state *sst,
 #define sha2_ce_transform __cfi_sha2_ce_transform
 #endif
 
+const u32 sha256_ce_offsetof_count = offsetof(struct sha256_ce_state,
+					      sst.count);
+const u32 sha256_ce_offsetof_finalize = offsetof(struct sha256_ce_state,
+						 finalize);
+
 static int sha256_ce_update(struct shash_desc *desc, const u8 *data,
 			    unsigned int len)
 {
@@ -59,11 +61,6 @@ static int sha256_ce_finup(struct shash_desc *desc, const u8 *data,
 {
 	struct sha256_ce_state *sctx = shash_desc_ctx(desc);
 	bool finalize = !sctx->sst.count && !(len % SHA256_BLOCK_SIZE);
-
-	ASM_EXPORT(sha256_ce_offsetof_count,
-		   offsetof(struct sha256_ce_state, sst.count));
-	ASM_EXPORT(sha256_ce_offsetof_finalize,
-		   offsetof(struct sha256_ce_state, finalize));
 
 	/*
 	 * Allow the asm code to perform the finalization if there is no
