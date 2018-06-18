@@ -18,7 +18,10 @@ menuconfig INPUT_FINGERPRINT
 if INPUT_FINGERPRINT
 
 source "drivers/input/fingerprint/fpc_tee/Kconfig"
+<<<<<<< HEAD
 source "drivers/input/fingerprint/goodix_ta/Kconfig"
 source "drivers/input/fingerprint/synaptics/Kconfig"
+=======
+>>>>>>> d0b31ccf5cee... drivers: input: fingerprint: Import FCP1020 driver
 
 endif
