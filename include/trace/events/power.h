@@ -835,6 +835,36 @@ TRACE_EVENT(sugov_util_update,
 		      __entry->pl, __entry->flags)
 );
 
+TRACE_EVENT(pwrgov_util_update,
+	    TP_PROTO(int cpu,
+		     unsigned long util, unsigned long avg_cap,
+		     unsigned long max_cap, unsigned long nl, unsigned long pl,
+		     unsigned int flags),
+	    TP_ARGS(cpu, util, avg_cap, max_cap, nl, pl, flags),
+	    TP_STRUCT__entry(
+		    __field(	int,		cpu)
+		    __field(	unsigned long,	util)
+		    __field(	unsigned long,	avg_cap)
+		    __field(	unsigned long,	max_cap)
+		    __field(	unsigned long,	nl)
+		    __field(	unsigned long,	pl)
+		    __field(	unsigned int,	flags)
+	    ),
+	    TP_fast_assign(
+		    __entry->cpu = cpu;
+		    __entry->util = util;
+		    __entry->avg_cap = avg_cap;
+		    __entry->max_cap = max_cap;
+		    __entry->nl = nl;
+		    __entry->pl = pl;
+		    __entry->flags = flags;
+	    ),
+	    TP_printk("cpu=%d util=%lu avg_cap=%lu max_cap=%lu nl=%lu pl=%lu flags=0x%x",
+		      __entry->cpu, __entry->util, __entry->avg_cap,
+		      __entry->max_cap, __entry->nl,
+		      __entry->pl, __entry->flags)
+);
+
 TRACE_EVENT(sugov_next_freq,
 	    TP_PROTO(unsigned int cpu, unsigned long util, unsigned long max,
 		     unsigned int freq),
@@ -1173,6 +1203,29 @@ DEFINE_EVENT(perf_cl_peak_timer_status, perf_cl_peak_exit_timer_stop,
 	TP_ARGS(cpu, perf_cl_peak_enter_cycles, perf_cl_peak_enter_cycle_cnt,
 		perf_cl_peak_exit_cycles, perf_cl_peak_exit_cycle_cnt,
 		timer_rate, mode)
+);
+
+TRACE_EVENT(pwrgov_next_freq,
+	    TP_PROTO(unsigned int cpu, unsigned long util, unsigned long max,
+		     unsigned int freq),
+	    TP_ARGS(cpu, util, max, freq),
+	    TP_STRUCT__entry(
+		    __field(	unsigned int,	cpu)
+		    __field(	unsigned long,	util)
+		    __field(	unsigned long,	max)
+		    __field(	unsigned int,	freq)
+	    ),
+	    TP_fast_assign(
+		    __entry->cpu = cpu;
+		    __entry->util = util;
+		    __entry->max = max;
+		    __entry->freq = freq;
+	    ),
+	    TP_printk("cpu=%u util=%lu max=%lu freq=%u",
+		      __entry->cpu,
+		      __entry->util,
+		      __entry->max,
+		      __entry->freq)
 );
 
 #endif /* _TRACE_POWER_H */
