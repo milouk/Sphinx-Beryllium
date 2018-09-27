@@ -1,3 +1,5 @@
+CFLAGS_ipa.o := -I$(src)
+
 obj-$(CONFIG_IPA3) += ipahal/
 
 ifdef CONFIG_X86

@@ -20,7 +20,7 @@
 #include <linux/workqueue.h>
 #include <linux/sysfs.h>
 #include <asm/unaligned.h>
-#include <idtp9220.h>
+#include "idtp9220.h"
 #include <linux/regmap.h>
 #include <linux/spinlock.h>
 #include <linux/of_gpio.h>
