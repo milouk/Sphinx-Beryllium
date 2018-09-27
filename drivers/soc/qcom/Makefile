@@ -1,6 +1,8 @@
 KASAN_SANITIZE_scm.o := n
 KCOV_INSTRUMENT_scm.o := n
 
+CFLAGS_tracer_pkt.o := -I$(src)
+
 obj-$(CONFIG_QCOM_CPUSS_DUMP) += cpuss_dump.o
 obj-$(CONFIG_QCOM_GSBI)	+=	qcom_gsbi.o
 obj-$(CONFIG_QCOM_LLCC) += llcc-core.o llcc-slice.o
