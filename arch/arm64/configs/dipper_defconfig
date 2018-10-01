@@ -667,5 +667,13 @@ CONFIG_MACH_XIAOMI_E1=y
 
 #Sphinx Features
 
+#
 #Dynamic Stune Boost
+#
 CONFIG_DYNAMIC_STUNE_BOOST=y
+
+#
+# WireGuard Support
+#
+CONFIG_WIREGUARD=y
+# CONFIG_WIREGUARD_DEBUG is not set
