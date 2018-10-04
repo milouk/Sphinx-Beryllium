@@ -665,7 +665,19 @@ CONFIG_QMI_ENCDEC=y
 CONFIG_MACH_XIAOMI_E1=y
 
 
-#Sphinx Features
+#####################
+#                   #
+#  Sphinx Features  #
+#                   #
+#####################
+
+#
+# Local Version
+#
+CONFIG_LOCALVERSION="-Sphinx-1.3"
+# CONFIG_LOCALVERSION_AUTO is not set
+CONFIG_DEFAULT_HOSTNAME="(none)"
+
 
 #
 #Dynamic Stune Boost
