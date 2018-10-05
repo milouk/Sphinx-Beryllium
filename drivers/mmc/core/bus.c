@@ -180,6 +180,7 @@ static int mmc_bus_suspend(struct device *dev)
 	 */
 	if (ret)
 		pm_generic_resume(dev);
+
 	return ret;
 }
 
