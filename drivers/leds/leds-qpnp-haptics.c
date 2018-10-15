@@ -1988,7 +1988,9 @@ static ssize_t qpnp_haptics_show_vmax_mv_strong(struct device *dev,
 	if (rc < 0) {
 		chip->vmax_mv_strong = old_vmax_mv;
 		return rc;
-}	
+    }	
+    return count;
+}
 
 static ssize_t qpnp_haptics_show_vmax_mv_call(struct device *dev,
 		struct device_attribute *attr, char *buf)
