@@ -1252,7 +1252,7 @@ ieee80211_tx_prepare(struct ieee80211_sub_if_data *sdata,
 
 static struct txq_info *ieee80211_get_txq(struct ieee80211_local *local,
 					  struct ieee80211_vif *vif,
-					  struct sta_info *sta,
+					  struct ieee80211_sta *pubsta,
 					  struct sk_buff *skb)
 {
 	struct ieee80211_hdr *hdr = (struct ieee80211_hdr *) skb->data;
@@ -1266,13 +1266,10 @@ static struct txq_info *ieee80211_get_txq(struct ieee80211_local *local,
 	if (!ieee80211_is_data(hdr->frame_control))
 		return NULL;
 
-	if (sta) {
+	if (pubsta) {
 		u8 tid = skb->priority & IEEE80211_QOS_CTL_TID_MASK;
 
-		if (!sta->uploaded)
-			return NULL;
-
-		txq = sta->sta.txq[tid];
+		txq = pubsta->txq[tid];
 	} else if (vif) {
 		txq = vif->txq;
 	}
@@ -1510,17 +1507,23 @@ static bool ieee80211_queue_skb(struct ieee80211_local *local,
 	struct fq *fq = &local->fq;
 	struct ieee80211_vif *vif;
 	struct txq_info *txqi;
+	struct ieee80211_sta *pubsta;
 
 	if (!local->ops->wake_tx_queue ||
 	    sdata->vif.type == NL80211_IFTYPE_MONITOR)
 		return false;
+
+	if (sta && sta->uploaded)
+		pubsta = &sta->sta;
+	else
+		pubsta = NULL;
 
 	if (sdata->vif.type == NL80211_IFTYPE_AP_VLAN)
 		sdata = container_of(sdata->bss,
 				     struct ieee80211_sub_if_data, u.ap);
 
 	vif = &sdata->vif;
-	txqi = ieee80211_get_txq(local, vif, sta, skb);
+	txqi = ieee80211_get_txq(local, vif, pubsta, skb);
 
 	if (!txqi)
 		return false;

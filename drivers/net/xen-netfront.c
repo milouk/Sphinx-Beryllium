@@ -1854,19 +1854,27 @@ static int talk_to_netback(struct xenbus_device *dev,
 		xennet_destroy_queues(info);
 
 	err = xennet_create_queues(info, &num_queues);
-	if (err < 0) {
-		xenbus_dev_fatal(dev, err, "creating queues");
-		kfree(info->queues);
-		info->queues = NULL;
-		goto out;
-	}
+	if (err < 0)
+		goto destroy_ring;
 
 	/* Create shared ring, alloc event channel -- for each queue */
 	for (i = 0; i < num_queues; ++i) {
 		queue = &info->queues[i];
 		err = setup_netfront(dev, queue, feature_split_evtchn);
-		if (err)
-			goto destroy_ring;
+		if (err) {
+			/* setup_netfront() will tidy up the current
+			 * queue on error, but we need to clean up
+			 * those already allocated.
+			 */
+			if (i > 0) {
+				rtnl_lock();
+				netif_set_real_num_tx_queues(info->netdev, i);
+				rtnl_unlock();
+				goto destroy_ring;
+			} else {
+				goto out;
+			}
+		}
 	}
 
 again:
@@ -1956,9 +1964,9 @@ abort_transaction_no_dev_fatal:
 	xenbus_transaction_end(xbt, 1);
  destroy_ring:
 	xennet_disconnect_backend(info);
-	xennet_destroy_queues(info);
+	kfree(info->queues);
+	info->queues = NULL;
  out:
-	device_unregister(&dev->dev);
 	return err;
 }
 

@@ -46,8 +46,7 @@ enum decon_flag_bits {
 	BIT_CLKS_ENABLED,
 	BIT_IRQS_ENABLED,
 	BIT_WIN_UPDATED,
-	BIT_SUSPENDED,
-	BIT_REQUEST_UPDATE
+	BIT_SUSPENDED
 };
 
 struct decon_context {
@@ -316,7 +315,6 @@ static void decon_update_plane(struct exynos_drm_crtc *crtc,
 
 	/* window enable */
 	decon_set_bits(ctx, DECON_WINCONx(win), WINCONx_ENWIN_F, ~0);
-	set_bit(BIT_REQUEST_UPDATE, &ctx->flags);
 }
 
 static void decon_disable_plane(struct exynos_drm_crtc *crtc,
@@ -329,7 +327,6 @@ static void decon_disable_plane(struct exynos_drm_crtc *crtc,
 		return;
 
 	decon_set_bits(ctx, DECON_WINCONx(win), WINCONx_ENWIN_F, 0);
-	set_bit(BIT_REQUEST_UPDATE, &ctx->flags);
 }
 
 static void decon_atomic_flush(struct exynos_drm_crtc *crtc)
@@ -343,8 +340,8 @@ static void decon_atomic_flush(struct exynos_drm_crtc *crtc)
 	for (i = ctx->first_win; i < WINDOWS_NR; i++)
 		decon_shadow_protect_win(ctx, i, false);
 
-	if (test_and_clear_bit(BIT_REQUEST_UPDATE, &ctx->flags))
-		decon_set_bits(ctx, DECON_UPDATE, STANDALONE_UPDATE_F, ~0);
+	/* standalone update */
+	decon_set_bits(ctx, DECON_UPDATE, STANDALONE_UPDATE_F, ~0);
 
 	if (ctx->out_type & IFTYPE_I80)
 		set_bit(BIT_WIN_UPDATED, &ctx->flags);

@@ -69,6 +69,7 @@ struct gtp_dev {
 	struct socket		*sock0;
 	struct socket		*sock1u;
 
+	struct net		*net;
 	struct net_device	*dev;
 
 	unsigned int		hash_size;
@@ -315,7 +316,7 @@ static int gtp_encap_recv(struct sock *sk, struct sk_buff *skb)
 
 	netdev_dbg(gtp->dev, "encap_recv sk=%p\n", sk);
 
-	xnet = !net_eq(sock_net(sk), dev_net(gtp->dev));
+	xnet = !net_eq(gtp->net, dev_net(gtp->dev));
 
 	switch (udp_sk(sk)->encap_type) {
 	case UDP_ENCAP_GTP0:
@@ -611,7 +612,7 @@ static netdev_tx_t gtp_dev_xmit(struct sk_buff *skb, struct net_device *dev)
 				    pktinfo.fl4.saddr, pktinfo.fl4.daddr,
 				    pktinfo.iph->tos,
 				    ip4_dst_hoplimit(&pktinfo.rt->dst),
-				    0,
+				    htons(IP_DF),
 				    pktinfo.gtph_port, pktinfo.gtph_port,
 				    true, false);
 		break;
@@ -657,7 +658,7 @@ static void gtp_link_setup(struct net_device *dev)
 static int gtp_hashtable_new(struct gtp_dev *gtp, int hsize);
 static void gtp_hashtable_free(struct gtp_dev *gtp);
 static int gtp_encap_enable(struct net_device *dev, struct gtp_dev *gtp,
-			    int fd_gtp0, int fd_gtp1);
+			    int fd_gtp0, int fd_gtp1, struct net *src_net);
 
 static int gtp_newlink(struct net *src_net, struct net_device *dev,
 			struct nlattr *tb[], struct nlattr *data[])
@@ -674,7 +675,7 @@ static int gtp_newlink(struct net *src_net, struct net_device *dev,
 	fd0 = nla_get_u32(data[IFLA_GTP_FD0]);
 	fd1 = nla_get_u32(data[IFLA_GTP_FD1]);
 
-	err = gtp_encap_enable(dev, gtp, fd0, fd1);
+	err = gtp_encap_enable(dev, gtp, fd0, fd1, src_net);
 	if (err < 0)
 		goto out_err;
 
@@ -820,7 +821,7 @@ static void gtp_hashtable_free(struct gtp_dev *gtp)
 }
 
 static int gtp_encap_enable(struct net_device *dev, struct gtp_dev *gtp,
-			    int fd_gtp0, int fd_gtp1)
+			    int fd_gtp0, int fd_gtp1, struct net *src_net)
 {
 	struct udp_tunnel_sock_cfg tuncfg = {NULL};
 	struct socket *sock0, *sock1u;
@@ -857,6 +858,7 @@ static int gtp_encap_enable(struct net_device *dev, struct gtp_dev *gtp,
 
 	gtp->sock0 = sock0;
 	gtp->sock1u = sock1u;
+	gtp->net = src_net;
 
 	tuncfg.sk_user_data = gtp;
 	tuncfg.encap_rcv = gtp_encap_recv;

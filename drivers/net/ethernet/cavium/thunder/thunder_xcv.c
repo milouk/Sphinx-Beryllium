@@ -116,7 +116,8 @@ void xcv_setup_link(bool link_up, int link_speed)
 	int speed = 2;
 
 	if (!xcv) {
-		pr_err("XCV init not done, probe may have failed\n");
+		dev_err(&xcv->pdev->dev,
+			"XCV init not done, probe may have failed\n");
 		return;
 	}
 
