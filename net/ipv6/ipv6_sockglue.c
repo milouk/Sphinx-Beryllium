@@ -585,24 +585,16 @@ done:
 
 		if (val) {
 			struct net_device *dev;
-			int midx;
 
-			rcu_read_lock();
+			if (sk->sk_bound_dev_if && sk->sk_bound_dev_if != val)
+				goto e_inval;
 
-			dev = dev_get_by_index_rcu(net, val);
+			dev = dev_get_by_index(net, val);
 			if (!dev) {
-				rcu_read_unlock();
 				retv = -ENODEV;
 				break;
 			}
-			midx = l3mdev_master_ifindex_rcu(dev);
-
-			rcu_read_unlock();
-
-			if (sk->sk_bound_dev_if &&
-			    sk->sk_bound_dev_if != val &&
-			    (!midx || midx != sk->sk_bound_dev_if))
-				goto e_inval;
+			dev_put(dev);
 		}
 		np->mcast_oif = val;
 		retv = 0;

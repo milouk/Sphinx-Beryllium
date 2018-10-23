@@ -121,7 +121,7 @@ static int wait_pciephy_busy(void)
 		else
 			break;
 		if (retry++ > WAITRETRY_MAX) {
-			pr_warn("PCIE-PHY retry failed.\n");
+			printk(KERN_WARN "PCIE-PHY retry failed.\n");
 			return -1;
 		}
 	}

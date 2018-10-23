@@ -365,7 +365,6 @@ static int lockd_start_svc(struct svc_serv *serv)
 		printk(KERN_WARNING
 			"lockd_up: svc_rqst allocation failed, error=%d\n",
 			error);
-		lockd_unregister_notifiers();
 		goto out_rqst;
 	}
 
@@ -456,16 +455,13 @@ int lockd_up(struct net *net)
 	}
 
 	error = lockd_up_net(serv, net);
-	if (error < 0) {
-		lockd_unregister_notifiers();
-		goto err_put;
-	}
+	if (error < 0)
+		goto err_net;
 
 	error = lockd_start_svc(serv);
-	if (error < 0) {
-		lockd_down_net(serv, net);
-		goto err_put;
-	}
+	if (error < 0)
+		goto err_start;
+
 	nlmsvc_users++;
 	/*
 	 * Note: svc_serv structures have an initial use count of 1,
@@ -476,6 +472,12 @@ err_put:
 err_create:
 	mutex_unlock(&nlmsvc_mutex);
 	return error;
+
+err_start:
+	lockd_down_net(serv, net);
+err_net:
+	lockd_unregister_notifiers();
+	goto err_put;
 }
 EXPORT_SYMBOL_GPL(lockd_up);
 

@@ -22,6 +22,7 @@ dtb-$(CONFIG_DT_NONE) += \
 	bcm63268-comtrend-vr-3032u.dtb \
 	bcm93384wvg.dtb \
 	bcm93384wvg_viper.dtb \
+	bcm96358nb4ser.dtb \
 	bcm96368mvwg.dtb \
 	bcm9ejtagprb.dtb \
 	bcm97125cbmb.dtb \

@@ -201,13 +201,17 @@ DECLARE_EVENT_CLASS(nfs4_clientid_event,
 		TP_ARGS(clp, error),
 
 		TP_STRUCT__entry(
-			__string(dstaddr, clp->cl_hostname)
+			__string(dstaddr,
+				rpc_peeraddr2str(clp->cl_rpcclient,
+					RPC_DISPLAY_ADDR))
 			__field(int, error)
 		),
 
 		TP_fast_assign(
 			__entry->error = error;
-			__assign_str(dstaddr, clp->cl_hostname);
+			__assign_str(dstaddr,
+				rpc_peeraddr2str(clp->cl_rpcclient,
+						RPC_DISPLAY_ADDR));
 		),
 
 		TP_printk(
@@ -1099,7 +1103,9 @@ DECLARE_EVENT_CLASS(nfs4_inode_callback_event,
 			__field(dev_t, dev)
 			__field(u32, fhandle)
 			__field(u64, fileid)
-			__string(dstaddr, clp ? clp->cl_hostname : "unknown")
+			__string(dstaddr, clp ?
+				rpc_peeraddr2str(clp->cl_rpcclient,
+					RPC_DISPLAY_ADDR) : "unknown")
 		),
 
 		TP_fast_assign(
@@ -1112,7 +1118,9 @@ DECLARE_EVENT_CLASS(nfs4_inode_callback_event,
 				__entry->fileid = 0;
 				__entry->dev = 0;
 			}
-			__assign_str(dstaddr, clp ? clp->cl_hostname : "unknown")
+			__assign_str(dstaddr, clp ?
+				rpc_peeraddr2str(clp->cl_rpcclient,
+					RPC_DISPLAY_ADDR) : "unknown")
 		),
 
 		TP_printk(
@@ -1154,7 +1162,9 @@ DECLARE_EVENT_CLASS(nfs4_inode_stateid_callback_event,
 			__field(dev_t, dev)
 			__field(u32, fhandle)
 			__field(u64, fileid)
-			__string(dstaddr, clp ? clp->cl_hostname : "unknown")
+			__string(dstaddr, clp ?
+				rpc_peeraddr2str(clp->cl_rpcclient,
+					RPC_DISPLAY_ADDR) : "unknown")
 			__field(int, stateid_seq)
 			__field(u32, stateid_hash)
 		),
@@ -1169,7 +1179,9 @@ DECLARE_EVENT_CLASS(nfs4_inode_stateid_callback_event,
 				__entry->fileid = 0;
 				__entry->dev = 0;
 			}
-			__assign_str(dstaddr, clp ? clp->cl_hostname : "unknown")
+			__assign_str(dstaddr, clp ?
+				rpc_peeraddr2str(clp->cl_rpcclient,
+					RPC_DISPLAY_ADDR) : "unknown")
 			__entry->stateid_seq =
 				be32_to_cpu(stateid->seqid);
 			__entry->stateid_hash =
