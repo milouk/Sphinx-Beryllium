@@ -364,11 +364,6 @@ next_hook:
 		ret = nf_queue(skb, state, &entry, verdict);
 		if (ret == 1 && entry)
 			goto next_hook;
-	} else {
-		/* Implicit handling for NF_STOLEN, as well as any other
-		 * non conventional verdicts.
-		 */
-		ret = 0;
 	}
 	return ret;
 }

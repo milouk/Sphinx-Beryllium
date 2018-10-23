@@ -1661,6 +1661,7 @@ static int fanout_add(struct sock *sk, u16 id, u16 type_flags)
 		atomic_long_set(&rollover->num, 0);
 		atomic_long_set(&rollover->num_huge, 0);
 		atomic_long_set(&rollover->num_failed, 0);
+		po->rollover = rollover;
 	}
 
 	match = NULL;
@@ -1707,7 +1708,7 @@ static int fanout_add(struct sock *sk, u16 id, u16 type_flags)
 			po->fanout = match;
 			po->rollover = rollover;
 			rollover = NULL;
-			atomic_inc(&match->sk_ref);
+			refcount_set(&match->sk_ref, refcount_read(&match->sk_ref) + 1);
 			__fanout_link(sk, po);
 			err = 0;
 		}
@@ -1720,7 +1721,10 @@ static int fanout_add(struct sock *sk, u16 id, u16 type_flags)
 	}
 
 out:
-	kfree(rollover);
+	if (err && rollover) {
+		kfree_rcu(rollover, rcu);
+		po->rollover = NULL;
+	}
 	mutex_unlock(&fanout_mutex);
 	return err;
 }
@@ -1744,6 +1748,11 @@ static struct packet_fanout *fanout_release(struct sock *sk)
 			list_del(&f->list);
 		else
 			f = NULL;
+
+		if (po->rollover) {
+			kfree_rcu(po->rollover, rcu);
+			po->rollover = NULL;
+		}
 	}
 	mutex_unlock(&fanout_mutex);
 
@@ -3032,7 +3041,6 @@ static int packet_release(struct socket *sock)
 	synchronize_net();
 
 	if (f) {
-		kfree(po->rollover);
 		fanout_release_data(f);
 		kfree(f);
 	}
@@ -3101,10 +3109,6 @@ static int packet_do_bind(struct sock *sk, const char *name, int ifindex,
 	if (need_rehook) {
 		if (po->running) {
 			rcu_read_unlock();
-			/* prevents packet_notifier() from calling
-			 * register_prot_hook()
-			 */
-			po->num = 0;
 			__unregister_prot_hook(sk, true);
 			rcu_read_lock();
 			dev_curr = po->prot_hook.dev;
@@ -3113,7 +3117,6 @@ static int packet_do_bind(struct sock *sk, const char *name, int ifindex,
 								 dev->ifindex);
 		}
 
-		BUG_ON(po->running);
 		po->num = proto;
 		po->prot_hook.type = proto;
 
@@ -3852,6 +3855,7 @@ static int packet_getsockopt(struct socket *sock, int level, int optname,
 	void *data = &val;
 	union tpacket_stats_u st;
 	struct tpacket_rollover_stats rstats;
+	struct packet_rollover *rollover;
 
 	if (level != SOL_PACKET)
 		return -ENOPROTOOPT;
@@ -3930,13 +3934,18 @@ static int packet_getsockopt(struct socket *sock, int level, int optname,
 		       0);
 		break;
 	case PACKET_ROLLOVER_STATS:
-		if (!po->rollover)
+		rcu_read_lock();
+		rollover = rcu_dereference(po->rollover);
+		if (rollover) {
+			rstats.tp_all = atomic_long_read(&rollover->num);
+			rstats.tp_huge = atomic_long_read(&rollover->num_huge);
+			rstats.tp_failed = atomic_long_read(&rollover->num_failed);
+			data = &rstats;
+			lv = sizeof(rstats);
+		}
+		rcu_read_unlock();
+		if (!rollover)
 			return -EINVAL;
-		rstats.tp_all = atomic_long_read(&po->rollover->num);
-		rstats.tp_huge = atomic_long_read(&po->rollover->num_huge);
-		rstats.tp_failed = atomic_long_read(&po->rollover->num_failed);
-		data = &rstats;
-		lv = sizeof(rstats);
 		break;
 	case PACKET_TX_HAS_OFF:
 		val = po->tp_tx_has_off;
