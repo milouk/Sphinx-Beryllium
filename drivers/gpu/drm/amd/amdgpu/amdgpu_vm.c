@@ -744,7 +744,7 @@ error_free:
 int amdgpu_vm_update_page_directory(struct amdgpu_device *adev,
                                    struct amdgpu_vm *vm)
 {
-	int r = 0;
+	int r;
 
 	r = amdgpu_vm_update_pd_or_shadow(adev, vm, true);
 	if (r)
