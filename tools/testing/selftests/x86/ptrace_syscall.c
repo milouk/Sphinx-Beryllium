@@ -58,8 +58,7 @@ static void do_full_int80(struct syscall_args32 *args)
 	asm volatile ("int $0x80"
 		      : "+a" (args->nr),
 			"+b" (args->arg0), "+c" (args->arg1), "+d" (args->arg2),
-			"+S" (args->arg3), "+D" (args->arg4), "+r" (bp)
-			: : "r8", "r9", "r10", "r11");
+			"+S" (args->arg3), "+D" (args->arg4), "+r" (bp));
 	args->arg5 = bp;
 #else
 	sys32_helper(args, int80_and_ret);

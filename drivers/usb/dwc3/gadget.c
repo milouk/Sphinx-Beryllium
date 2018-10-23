@@ -3977,10 +3977,15 @@ void dwc3_gadget_exit(struct dwc3 *dwc)
 
 int dwc3_gadget_suspend(struct dwc3 *dwc)
 {
+	int ret;
+
 	if (!dwc->gadget_driver)
 		return 0;
 
-	dwc3_gadget_run_stop(dwc, false, false);
+	ret = dwc3_gadget_run_stop(dwc, false, false);
+	if (ret < 0)
+		return ret;
+
 	dwc3_disconnect_gadget(dwc);
 	__dwc3_gadget_stop(dwc);
 

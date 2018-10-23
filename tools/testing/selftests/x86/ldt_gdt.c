@@ -45,12 +45,6 @@
 #define AR_DB			(1 << 22)
 #define AR_G			(1 << 23)
 
-#ifdef __x86_64__
-# define INT80_CLOBBERS "r8", "r9", "r10", "r11"
-#else
-# define INT80_CLOBBERS
-#endif
-
 static int nerrs;
 
 /* Points to an array of 1024 ints, each holding its own index. */
@@ -655,7 +649,7 @@ static int invoke_set_thread_area(void)
 	asm volatile ("int $0x80"
 		      : "=a" (ret), "+m" (low_user_desc) :
 			"a" (243), "b" (low_user_desc)
-		      : INT80_CLOBBERS);
+		      : "flags");
 	return ret;
 }
 
@@ -724,7 +718,7 @@ static void test_gdt_invalidation(void)
 			"+a" (eax)
 		      : "m" (low_user_desc_clear),
 			[arg1] "r" ((unsigned int)(unsigned long)low_user_desc_clear)
-		      : INT80_CLOBBERS);
+		      : "flags");
 
 	if (sel != 0) {
 		result = "FAIL";
@@ -755,7 +749,7 @@ static void test_gdt_invalidation(void)
 			"+a" (eax)
 		      : "m" (low_user_desc_clear),
 			[arg1] "r" ((unsigned int)(unsigned long)low_user_desc_clear)
-		      : INT80_CLOBBERS);
+		      : "flags");
 
 	if (sel != 0) {
 		result = "FAIL";
@@ -788,7 +782,7 @@ static void test_gdt_invalidation(void)
 			"+a" (eax)
 		      : "m" (low_user_desc_clear),
 			[arg1] "r" ((unsigned int)(unsigned long)low_user_desc_clear)
-		      : INT80_CLOBBERS);
+		      : "flags");
 
 #ifdef __x86_64__
 	syscall(SYS_arch_prctl, ARCH_GET_FS, &new_base);
@@ -841,7 +835,7 @@ static void test_gdt_invalidation(void)
 			"+a" (eax)
 		      : "m" (low_user_desc_clear),
 			[arg1] "r" ((unsigned int)(unsigned long)low_user_desc_clear)
-		      : INT80_CLOBBERS);
+		      : "flags");
 
 #ifdef __x86_64__
 	syscall(SYS_arch_prctl, ARCH_GET_GS, &new_base);
