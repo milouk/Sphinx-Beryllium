@@ -419,7 +419,7 @@ int handle_userfault(struct fault_env *fe, unsigned long reason)
 			 * in such case.
 			 */
 			down_read(&mm->mmap_sem);
-			ret = VM_FAULT_NOPAGE;
+			ret = 0;
 		}
 	}
 

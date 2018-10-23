@@ -171,7 +171,7 @@ struct t4_cqe {
 			__be32 msn;
 		} rcqe;
 		struct {
-			__be32 stag;
+			u32 stag;
 			u16 nada2;
 			u16 cidx;
 		} scqe;

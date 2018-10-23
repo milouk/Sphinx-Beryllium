@@ -188,8 +188,6 @@ static int cp2112_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 				 HID_REQ_GET_REPORT);
 	if (ret != CP2112_GPIO_CONFIG_LENGTH) {
 		hid_err(hdev, "error requesting GPIO config: %d\n", ret);
-		if (ret >= 0)
-			ret = -EIO;
 		goto exit;
 	}
 
@@ -199,10 +197,8 @@ static int cp2112_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 	ret = hid_hw_raw_request(hdev, CP2112_GPIO_CONFIG, buf,
 				 CP2112_GPIO_CONFIG_LENGTH, HID_FEATURE_REPORT,
 				 HID_REQ_SET_REPORT);
-	if (ret != CP2112_GPIO_CONFIG_LENGTH) {
+	if (ret < 0) {
 		hid_err(hdev, "error setting GPIO config: %d\n", ret);
-		if (ret >= 0)
-			ret = -EIO;
 		goto exit;
 	}
 
@@ -210,7 +206,7 @@ static int cp2112_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 
 exit:
 	mutex_unlock(&dev->lock);
-	return ret;
+	return ret < 0 ? ret : -EIO;
 }
 
 static void cp2112_gpio_set(struct gpio_chip *chip, unsigned offset, int value)

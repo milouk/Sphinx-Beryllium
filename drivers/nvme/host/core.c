@@ -1619,8 +1619,7 @@ static struct nvme_ns *nvme_find_get_ns(struct nvme_ctrl *ctrl, unsigned nsid)
 	mutex_lock(&ctrl->namespaces_mutex);
 	list_for_each_entry(ns, &ctrl->namespaces, list) {
 		if (ns->ns_id == nsid) {
-			if (!kref_get_unless_zero(&ns->kref))
-				continue;
+			kref_get(&ns->kref);
 			ret = ns;
 			break;
 		}
