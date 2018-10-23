@@ -449,7 +449,7 @@ static int create_val_field(struct hist_trigger_data *hist_data,
 	}
 
 	field = trace_find_event_field(file->event_call, field_name);
-	if (!field || !field->size) {
+	if (!field) {
 		ret = -EINVAL;
 		goto out;
 	}
@@ -547,7 +547,7 @@ static int create_key_field(struct hist_trigger_data *hist_data,
 		}
 
 		field = trace_find_event_field(file->event_call, field_name);
-		if (!field || !field->size) {
+		if (!field) {
 			ret = -EINVAL;
 			goto out;
 		}
