@@ -2175,7 +2175,7 @@ static int cam_ife_mgr_start_hw(void *hw_mgr_priv, void *start_hw_args)
 
 	ctx = (struct cam_ife_hw_mgr_ctx *)
 		start_isp->hw_config.ctxt_to_hw_map;
-	if (!ctx || !ctx->ctx_in_use) {
+	if (!ctx || (ctx->ctx_state < CAM_IFE_HW_MGR_CTX_ACQUIRED)) {
 		CAM_ERR(CAM_ISP, "Invalid context is used");
 		return -EPERM;
 	}
