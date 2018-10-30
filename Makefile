@@ -393,11 +393,23 @@ LINUXINCLUDE    := \
 LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_CFLAGS   := -Werror -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -std=gnu89
+		   -std=gnu99
+
+#GCC 5.x.x
+KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
+		   -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-function \
+           -Wno-unused-label -Wno-memset-transposed-args -Wno-bool-compare \
+           -Wno-logical-not-parentheses -Wno-discarded-array-qualifiers \
+		   -Wno-array-bounds -Wno-error=incompatible-pointer-types \
+           -Wno-incompatible-pointer-types -Wno-pointer-sign \
+           -Wno-parentheses -Wno-nonnull -Wno-attributes -Wno-sizeof-pointer-memaccess
+#GCC 6.x.x
+KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-shift-overflow 
+
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -815,9 +827,6 @@ KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
 
 # Prohibit date/time macros, which would make the build non-deterministic
 KBUILD_CFLAGS   += $(call cc-option,-Werror=date-time)
-
-# enforce correct pointer usage
-KBUILD_CFLAGS   += $(call cc-option,-Werror=incompatible-pointer-types)
 
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
