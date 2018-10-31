@@ -2871,42 +2871,6 @@ static ssize_t blink_store(struct device *dev,
 	return count;
 }
 
-static ssize_t shutdown_enable_show(struct device *dev,
-				 struct device_attribute *attr,
-				 char *buf)
-{
-	return sprintf(buf, "%d\n", shutdown_enable);
-}
-
-static ssize_t shutdown_enable_store(struct device *dev,
-	struct device_attribute *attr,
-	const char *buf, size_t count)
-{
-
-	if (count < 1)
-		return -EINVAL;
-
-	switch (buf[0]) {
-	case '0':
-		shutdown_enable = 0;
-		break;
-	case '3':
-		shutdown_enable = 3;
-		break;
-	case '4':
-		shutdown_enable = 4;
-		break;
-	case '5':
-		shutdown_enable = 5;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return count;
-
-}
-
 static ssize_t show_led_fade(struct device *dev,
                     struct device_attribute *attr, char *buf)
 {
@@ -3000,7 +2964,6 @@ static DEVICE_ATTR(blink, 0664, NULL, blink_store);
 static DEVICE_ATTR(led_fade, S_IWUSR | S_IRUGO, show_led_fade, store_led_fade);
 static DEVICE_ATTR(led_intensity, S_IWUSR | S_IRUGO, show_led_intensity, store_led_intensity);
 static DEVICE_ATTR(led_speed, S_IWUSR | S_IRUGO, show_led_speed, store_led_speed);
-static DEVICE_ATTR(enable, 0644, shutdown_enable_show, shutdown_enable_store);
 static struct attribute *led_attrs[] = {
 	&dev_attr_led_mode.attr,
 	&dev_attr_strobe.attr,
