@@ -394,13 +394,13 @@ LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
-		   -std=gnu99
+		           -fno-strict-aliasing -fno-common \
+		           -Wno-format-security \
+		           -std=gnu89
 
 #GCC 5.x.x
 KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
+           -Wno-error=implicit-function-declaration -Wno-implicit-function-declaration \
 		   -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-function \
            -Wno-unused-label -Wno-memset-transposed-args -Wno-bool-compare \
            -Wno-logical-not-parentheses -Wno-discarded-array-qualifiers \
