@@ -398,8 +398,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -std=gnu99
-
+		   -std=gnu89
 #GCC 5.x.x
 KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
 		   -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-function \
@@ -410,6 +409,9 @@ KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
            -Wno-parentheses -Wno-nonnull -Wno-attributes -Wno-sizeof-pointer-memaccess
 #GCC 6.x.x
 KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-shift-overflow 
+#GCC 7.x.x
+KBUILD_CFLAGS += -Wno-duplicate-decl-specifier -Wno-memset-elt-size -Wno-bool-operation \
+                 -Wno-switch-unreachable
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
