@@ -394,6 +394,7 @@ LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+                   -mtune=cortex-a75.cortex-a55\
 		           -fno-strict-aliasing -fno-common \
 		           -Wno-format-security \
 		           -std=gnu89
@@ -409,6 +410,15 @@ KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
            -Wno-parentheses -Wno-nonnull -Wno-attributes -Wno-sizeof-pointer-memaccess
 #GCC 6.x.x
 KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-shift-overflow 
+#GCC 7.x.x
+KBUILD_CFLAGS += -Wno-duplicate-decl-specifier -Wno-memset-elt-size -Wno-bool-operation \
+                 -Wno-switch-unreachable
+#GCC 8.x.x
+KBUILD_CFLAGS += -Wno-stringop-overflow
+
+# Needed to unbreak GCC 7.x and above
+KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
+
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
