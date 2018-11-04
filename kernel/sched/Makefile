@@ -30,3 +30,5 @@ obj-$(CONFIG_CPU_FREQ_GOV_SCHEDUTIL) += cpufreq_schedutil.o
 obj-$(CONFIG_SCHED_CORE_CTL) += core_ctl.o
 obj-$(CONFIG_CPU_FREQ_GOV_SCHED) += cpufreq_sched.o
 obj-$(CONFIG_CPU_FREQ_GOV_BLU_SCHEDUTIL) += cpufreq_blu_schedutil.o
+obj-$(CONFIG_CPU_FREQ_GOV_ALUCARDSCHED) += cpufreq_alucardsched.o
+obj-$(CONFIG_CPU_FREQ_GOV_ALUCARDSCHED) += cpufreq_darknesssched.o
