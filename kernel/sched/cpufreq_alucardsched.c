@@ -43,7 +43,6 @@ unsigned long boosted_cpu_util(int cpu);
 #define PUMP_DEC_STEP_AT_MIN_FREQ	3
 #define PUMP_DEC_STEP				1
 #define BOOST_PERC											10
-#define LATENCY_MULTIPLIER			(2000)
 #define DEFAULT_RATE_LIMIT_SUSP_NS ((s64)(80000 * NSEC_PER_USEC))
 
 struct acgov_tunables {
