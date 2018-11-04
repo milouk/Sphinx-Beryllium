@@ -32,6 +32,7 @@ unsigned long boosted_cpu_util(int cpu);
 #define cpufreq_driver_fast_switch(x, y) 0
 #define cpufreq_enable_fast_switch(x)
 #define cpufreq_disable_fast_switch(x)
+#undef LATENCY_MULTIPLIER
 #define LATENCY_MULTIPLIER			(2000)
 #define DKGOV_KTHREAD_PRIORITY	50
 
@@ -91,7 +92,7 @@ struct dkgov_cpu {
 static DEFINE_PER_CPU(struct dkgov_cpu, dkgov_cpu);
 static DEFINE_PER_CPU(struct dkgov_tunables, cached_tunables);
 
-#define LITTLE_NFREQS				18
+#define LITTLE_NFREQS				19
 #define BIG_NFREQS					28
 static unsigned long little_capacity[LITTLE_NFREQS] = {
 	0,
