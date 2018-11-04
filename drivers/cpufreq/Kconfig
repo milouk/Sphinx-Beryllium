@@ -147,6 +147,26 @@ config CPU_FREQ_DEFAULT_GOV_BLU_SCHEDUTIL
 	  have a look at the help section of that governor. The fallback
 	  governor will be 'performance'.
 
+config CPU_FREQ_DEFAULT_GOV_ALUCARDSCHED
+	bool "alucardsched"
+	depends on SMP
+	select CPU_FREQ_GOV_ALUCARDSCHED
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the 'alucardsched' CPUFreq governor by default. If unsure,
+	  have a look at the help section of that governor. The fallback
+	  governor will be 'performance'.
+
+ config CPU_FREQ_DEFAULT_GOV_DARKNESSSCHED
+	bool "darknesssched"
+	depends on SMP
+	select CPU_FREQ_GOV_DARKNESSSCHED
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the 'darknesssched' CPUFreq governor by default. If unsure,
+	  have a look at the help section of that governor. The fallback
+	  governor will be 'performance'.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -305,6 +325,28 @@ config CPU_FREQ_GOV_BLU_SCHEDUTIL
 	  be called cpufreq_blu_schedutil.
 
 	  If in doubt, say N.
+
+config CPU_FREQ_GOV_ALUCARDSCHED
+	bool "'alucardsched' cpufreq policy governor"
+	depends on CPU_FREQ && SMP
+	select CPU_FREQ_GOV_ATTR_SET
+	select IRQ_WORK
+	help
+	  Use the 'alucardsched' CPUFreq governor by default. If unsure,
+	  have a look at the help section of that governor. The fallback
+	  governor will be 'performance'.
+ 	  If in doubt, say N.
+
+ config CPU_FREQ_GOV_DARKNESSSCHED
+	bool "'darknesssched' cpufreq policy governor"
+	depends on CPU_FREQ && SMP
+	select CPU_FREQ_GOV_ATTR_SET
+	select IRQ_WORK
+	help
+	  Use the 'darknesssched' CPUFreq governor by default. If unsure,
+	  have a look at the help section of that governor. The fallback
+	  governor will be 'performance'.
+ 	  If in doubt, say N.
 
 config CPUFREQ_DT
 	tristate "Generic DT based cpufreq driver"
