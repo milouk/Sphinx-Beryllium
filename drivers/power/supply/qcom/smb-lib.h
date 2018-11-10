@@ -399,6 +399,7 @@ struct smb_charger {
 	bool			otg_present;
 	bool			is_audio_adapter;
 	int			dc_input_current_now;
+	bool			in_chg_lock;
 
 	/* workaround flag */
 	u32			wa_flags;
