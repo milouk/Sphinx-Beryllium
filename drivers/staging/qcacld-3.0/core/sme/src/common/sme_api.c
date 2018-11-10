@@ -2421,6 +2421,7 @@ static QDF_STATUS sme_process_antenna_mode_resp(tpAniSirGlobal mac,
 	tListElem *entry;
 	tSmeCmd *command;
 	bool found;
+	void *context;
 	antenna_mode_cb callback;
 	struct sir_antenna_mode_resp *param;
 
@@ -2449,13 +2450,13 @@ static QDF_STATUS sme_process_antenna_mode_resp(tpAniSirGlobal mac,
 		return QDF_STATUS_E_FAILURE;
 	}
 
-	callback =
-		command->u.set_antenna_mode_cmd.set_antenna_mode_resp;
+	context = command->u.set_antenna_mode_cmd.set_antenna_mode_ctx;
+	callback = command->u.set_antenna_mode_cmd.set_antenna_mode_resp;
 	if (callback) {
 		if (!param)
 			sme_err("Set antenna mode call back is NULL");
 		else
-			callback(param->status);
+			callback(param->status, context);
 	} else
 		sme_err("Callback does not exist");
 
@@ -14636,11 +14637,12 @@ QDF_STATUS sme_ll_stats_set_req(tHalHandle hHal, tSirLLStatsSetReq
  *
  * @hHal
  * @pgetStatsReq: Link Layer get stats request params structure
+ * @context: Callback context for ll stats
  *
  * Return QDF_STATUS
  */
 QDF_STATUS sme_ll_stats_get_req(tHalHandle hHal, tSirLLStatsGetReq
-				*pgetStatsReq)
+				*pgetStatsReq, void *context)
 {
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	QDF_STATUS qdf_status = QDF_STATUS_SUCCESS;
@@ -14659,6 +14661,7 @@ QDF_STATUS sme_ll_stats_get_req(tHalHandle hHal, tSirLLStatsGetReq
 
 	*get_stats_req = *pgetStatsReq;
 
+	pMac->sme.ll_stats_context = context;
 	if (QDF_STATUS_SUCCESS == sme_acquire_global_lock(&pMac->sme)) {
 		/* Serialize the req through MC thread */
 		cds_message.bodyptr = get_stats_req;
@@ -14688,16 +14691,17 @@ QDF_STATUS sme_ll_stats_get_req(tHalHandle hHal, tSirLLStatsGetReq
 
 /**
  * sme_set_link_layer_stats_ind_cb() - SME API to trigger the stats are
- * available  after get request
+ * available after get request
  *
- * @hHal
- * @callback_routine - HDD callback which needs to be invoked after
- *	   getting status notification from FW
+ * @hHal: handle in hdd context
+ * @callback_routine: HDD callback which needs to be invoked after
+ * getting status notification from FW
  *
  * Return QDF_STATUS
  */
 QDF_STATUS sme_set_link_layer_stats_ind_cb(tHalHandle hHal,
-	void (*callback_routine)(void *callbackCtx, int indType, void *pRsp))
+	void (*callback_routine)(void *callbackCtx, int indType, void *pRsp,
+				 void *context))
 {
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
@@ -18468,26 +18472,37 @@ QDF_STATUS sme_get_chain_rssi(tHalHandle phal,
 	return status;
 }
 
-/**
- * sme_chain_rssi_register_callback - chain rssi callback
- * @hal: global hal handle
- * @pchain_rssi_ind_cb: callback function pointer
- *
- * Return: QDF_STATUS enumeration.
- */
-QDF_STATUS sme_chain_rssi_register_callback(tHalHandle phal,
-			void (*pchain_rssi_ind_cb)(void *, void *))
+QDF_STATUS
+sme_chain_rssi_register_callback(tHalHandle phal,
+				 void (*pchain_rssi_ind_cb)(void *, void *,
+							    void *),
+				 void *context)
 {
 	QDF_STATUS status;
 	tpAniSirGlobal pmac = PMAC_STRUCT(phal);
 
 	status = sme_acquire_global_lock(&pmac->sme);
 	if (QDF_STATUS_SUCCESS == status) {
+		pmac->sme.pchain_rssi_ind_ctx = context;
 		pmac->sme.pchain_rssi_ind_cb = pchain_rssi_ind_cb;
 		sme_release_global_lock(&pmac->sme);
 	}
 
 	return status;
+}
+
+void sme_chain_rssi_deregister_callback(tHalHandle hal)
+{
+	tpAniSirGlobal pmac;
+
+	if (!hal) {
+		sme_err("hal is not valid");
+		return;
+	}
+
+	pmac = PMAC_STRUCT(hal);
+	if (pmac->sme.pchain_rssi_ind_cb)
+		pmac->sme.pchain_rssi_ind_cb = NULL;
 }
 
 QDF_STATUS sme_set_reorder_timeout(tHalHandle hal,

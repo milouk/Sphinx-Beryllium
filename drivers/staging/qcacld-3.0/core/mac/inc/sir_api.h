@@ -546,16 +546,35 @@ struct sir_set_dual_mac_cfg {
 };
 
 /**
+ * enum set_antenna_mode_status - Status of set antenna mode
+ * command
+ * @SET_ANTENNA_MODE_STATUS_OK: command successful
+ * @SET_ANTENNA_MODE_STATUS_EINVAL: invalid antenna mode
+ * @SET_ANTENNA_MODE_STATUS_ECANCELED: mode change cancelled
+ * @SET_ANTENNA_MODE_STATUS_ENOTSUP: mode not supported
+ */
+enum set_antenna_mode_status {
+	SET_ANTENNA_MODE_STATUS_OK,
+	SET_ANTENNA_MODE_STATUS_EINVAL,
+	SET_ANTENNA_MODE_STATUS_ECANCELED,
+	SET_ANTENNA_MODE_STATUS_ENOTSUP,
+};
+
+typedef void (*antenna_mode_cb)(enum set_antenna_mode_status status,
+				void *context);
+
+/**
  * struct sir_antenna_mode_param - antenna mode param
  * @num_tx_chains: Number of TX chains
  * @num_rx_chains: Number of RX chains
- * @reason: Reason for setting antenna mode
  * @set_antenna_mode_resp: callback to set antenna mode command
+ * @set_antenna_mode_ctx: callback context to set antenna mode command
  */
 struct sir_antenna_mode_param {
 	uint32_t num_tx_chains;
 	uint32_t num_rx_chains;
-	void *set_antenna_mode_resp;
+	antenna_mode_cb set_antenna_mode_resp;
+	void *set_antenna_mode_ctx;
 };
 
 /**
@@ -3929,21 +3948,6 @@ struct sir_dual_mac_config_resp {
 };
 
 /**
- * enum set_antenna_mode_status - Status of set antenna mode
- * command
- * @SET_ANTENNA_MODE_STATUS_OK: command successful
- * @SET_ANTENNA_MODE_STATUS_EINVAL: invalid antenna mode
- * @SET_ANTENNA_MODE_STATUS_ECANCELED: mode change cancelled
- * @SET_ANTENNA_MODE_STATUS_ENOTSUP: mode not supported
- */
-enum set_antenna_mode_status {
-	SET_ANTENNA_MODE_STATUS_OK,
-	SET_ANTENNA_MODE_STATUS_EINVAL,
-	SET_ANTENNA_MODE_STATUS_ECANCELED,
-	SET_ANTENNA_MODE_STATUS_ENOTSUP,
-};
-
-/**
  * struct sir_antenna_mode_resp - set antenna mode response
  * @status: Status of setting the antenna mode
  */
@@ -6704,7 +6708,6 @@ typedef void (*hw_mode_transition_cb)(uint32_t old_hw_mode_index,
 		struct sir_vdev_mac_map *vdev_mac_map);
 typedef void (*dual_mac_cb)(uint32_t status, uint32_t scan_config,
 		uint32_t fw_mode_config);
-typedef void (*antenna_mode_cb)(uint32_t status);
 
 /**
  * struct sir_nss_update_request

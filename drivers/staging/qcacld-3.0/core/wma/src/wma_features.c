@@ -10997,6 +10997,11 @@ int wma_peer_ant_info_evt_handler(void *handle, u_int8_t *event,
 		return -EINVAL;
 	}
 
+	if (!pmac->sme.pchain_rssi_ind_cb) {
+		WMA_LOGE("%s: callback not registered", __func__);
+		return -EINVAL;
+	}
+
 	param_buf = (WMI_PEER_ANTDIV_INFO_EVENTID_param_tlvs *) event;
 	if (!param_buf) {
 		WMA_LOGE("Invalid peer_ant_info event buffer");
@@ -11022,7 +11027,8 @@ int wma_peer_ant_info_evt_handler(void *handle, u_int8_t *event,
 				peer_ant_info->chain_rssi,
 				sizeof(peer_ant_info->chain_rssi));
 
-	pmac->sme.pchain_rssi_ind_cb(pmac->hHdd, &chain_rssi_result);
+	pmac->sme.pchain_rssi_ind_cb(pmac->hHdd, &chain_rssi_result,
+				     pmac->sme.pchain_rssi_ind_ctx);
 
 	return 0;
 }
