@@ -389,8 +389,7 @@ LINUXINCLUDE    := \
 LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-                   -mtune=cortex-a75.cortex-a55\
+KBUILD_CFLAGS   := -Wall -Wundef -Wno-strict-prototypes -Wno-trigraphs \
 		           -fno-strict-aliasing -fno-common -fshort-wchar \
 		           -Wno-format-security \
 		           -std=gnu89
@@ -398,19 +397,22 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 #GCC 5.x.x
 KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
            -Wno-error=implicit-function-declaration -Wno-implicit-function-declaration \
-		   -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-function \
-           -Wno-unused-label -Wno-memset-transposed-args -Wno-bool-compare \
-           -Wno-logical-not-parentheses -Wno-discarded-array-qualifiers \
+           -Wno-unused-variable -Wno-unused-function \
+           -Wno-unused-label -Wno-logical-not-parentheses \
 		   -Wno-array-bounds -Wno-error=incompatible-pointer-types \
            -Wno-incompatible-pointer-types -Wno-pointer-sign \
            -Wno-parentheses -Wno-nonnull -Wno-attributes -Wno-sizeof-pointer-memaccess
 #GCC 6.x.x
-KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-shift-overflow 
+KBUILD_CFLAGS += -Wno-shift-overflow 
 #GCC 7.x.x
-KBUILD_CFLAGS += -Wno-duplicate-decl-specifier -Wno-memset-elt-size -Wno-bool-operation \
-                 -Wno-switch-unreachable
-#GCC 8.x.x
-KBUILD_CFLAGS += -Wno-stringop-overflow
+KBUILD_CFLAGS += -Wno-duplicate-decl-specifier \
+
+
+#Clang
+KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
+-Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
+-Wno-constant-conversion -Wno-enum-conversion
+
 
 # Needed to unbreak GCC 7.x and above
 KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
@@ -663,7 +665,6 @@ ARCH_AFLAGS :=
 ARCH_CFLAGS :=
 include arch/$(SRCARCH)/Makefile
 
-KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
@@ -834,10 +835,6 @@ KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
 # need to disable it here generally.
 KBUILD_CFLAGS	+= $(call cc-option,-fno-merge-all-constants)
 
-# for gcc -fno-merge-all-constants disables everything, but it is fine
-# to have actual conforming behavior enabled.
-KBUILD_CFLAGS	+= $(call cc-option,-fmerge-constants)
-
 # Make sure -fstack-check isn't enabled (like gentoo apparently did)
 KBUILD_CFLAGS  += $(call cc-option,-fno-stack-check,)
 
@@ -846,9 +843,6 @@ KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 
 # disallow errors like 'EXPORT_GPL(foo);' with missing header
 KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)
-
-# require functions to have arguments in prototypes, not empty 'int foo()'
-KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
 
 # Prohibit date/time macros, which would make the build non-deterministic
 KBUILD_CFLAGS   += $(call cc-option,-Werror=date-time)
