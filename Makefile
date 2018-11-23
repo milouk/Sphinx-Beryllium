@@ -414,9 +414,6 @@ KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
 -Wno-constant-conversion -Wno-enum-conversion
 
 
-# Needed to unbreak GCC 7.x and above
-KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
-
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
