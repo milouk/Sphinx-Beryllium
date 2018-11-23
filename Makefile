@@ -391,7 +391,7 @@ LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wno-strict-prototypes -Wno-trigraphs \
 		           -fno-strict-aliasing -fno-common -fshort-wchar \
-		           -Wno-format-security \
+		           -Wno-format-security -march=armv8.2-a -mfpu=crypto-neon-fp-armv8\
 		           -std=gnu89
 
 #GCC 5.x.x
@@ -405,13 +405,7 @@ KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
 #GCC 6.x.x
 KBUILD_CFLAGS += -Wno-shift-overflow 
 #GCC 7.x.x
-KBUILD_CFLAGS += -Wno-duplicate-decl-specifier \
-
-
-#Clang
-KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
--Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
--Wno-constant-conversion -Wno-enum-conversion
+KBUILD_CFLAGS += -Wno-duplicate-decl-specifier
 
 
 KBUILD_CPPFLAGS := -D__KERNEL__
@@ -738,6 +732,12 @@ endif
 KBUILD_CFLAGS += $(stackp-flag)
 
 ifeq ($(cc-name),clang)
+#Clang
+KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
+-Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
+-Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
+-Wno-undefined-optimized
+
 KBUILD_CPPFLAGS += $(call cc-option,-Qunused-arguments,)
 KBUILD_CFLAGS += $(call cc-disable-warning, format-invalid-specifier)
 KBUILD_CFLAGS += $(call cc-disable-warning, gnu)
