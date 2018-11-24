@@ -68,6 +68,14 @@ config IOSCHED_ZEN
 	FCFS, dispatches are back-inserted, deadlines ensure fairness.
         Should work best with devices where there is no travel delay.
 
+config IOSCHED_TRIPNDROID
+	tristate "TripNDroid IO Scheduler"
+	default n
+	---help---
+	  The TripNDroid IO Scheduler is based on noop, deadline and vr
+	  it uses deadlines to ensure some fairness. The scheduler is build
+	  to keep a minimum overhead. It is mainly build for mobile devices.
+
 choice
 	prompt "Default I/O scheduler"
 	default DEFAULT_MAPLE
@@ -96,6 +104,9 @@ choice
 	config DEFAULT_ZEN
 		bool "ZEN" if IOSCHED_ZEN=y
 
+	config DEFAULT_TRIPNDROID
+		bool "TD" if IOSCHED_TRIPNDROID=y
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -107,6 +118,8 @@ config DEFAULT_IOSCHED
 	default "fiops" if DEFAULT_FIOPS
 	default "sio" if DEFAULT_SIO
 	default "maple" if DEFAULT_MAPLE
+	default "tripndroid" if DEFAULT_TRIPNDROID
+
 
 endmenu
 
