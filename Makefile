@@ -739,7 +739,7 @@ ifeq ($(cc-name),clang)
 KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
 -Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
 -Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
--Wno-undefined-optimized -fno-integrated-as
+-Wno-undefined-optimized -fno-integrated-as -Wno-compare-distinct-pointer-types
 
 KBUILD_CPPFLAGS += $(call cc-option,-Qunused-arguments,)
 KBUILD_CFLAGS += $(call cc-disable-warning, format-invalid-specifier)
