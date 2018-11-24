@@ -391,7 +391,7 @@ LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wno-strict-prototypes -Wno-trigraphs \
 		           -fno-strict-aliasing -fno-common -fshort-wchar \
-		           -Wno-format-security -march=armv8.2-a -mfpu=crypto-neon-fp-armv8\
+		           -Wno-format-security\
 		           -std=gnu89
 
 #GCC 5.x.x
@@ -406,7 +406,10 @@ KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
 KBUILD_CFLAGS += -Wno-shift-overflow 
 #GCC 7.x.x
 KBUILD_CFLAGS += -Wno-duplicate-decl-specifier
-
+#GCC 9.x.x
+KBUILD_CFLAGS += -Wno-misleading-identation -Wno-stringpop-overflow \
+                 -Wno-memset-elt-size -Wno-bool-operation -Wno-maybe-uninitialized\
+                 -Wno-switch-unreachable
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
@@ -668,7 +671,7 @@ KBUILD_CFLAGS	+= $(call cc-option,-fdata-sections,)
 endif
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
+KBUILD_CFLAGS	+= -Oz $(call cc-disable-warning,maybe-uninitialized,)
 else
 ifdef CONFIG_PROFILE_ALL_BRANCHES
 KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
@@ -736,7 +739,7 @@ ifeq ($(cc-name),clang)
 KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
 -Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
 -Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
--Wno-undefined-optimized
+-Wno-undefined-optimized -fno-integrated-as
 
 KBUILD_CPPFLAGS += $(call cc-option,-Qunused-arguments,)
 KBUILD_CFLAGS += $(call cc-disable-warning, format-invalid-specifier)
