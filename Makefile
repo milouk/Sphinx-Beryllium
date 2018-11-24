@@ -407,7 +407,7 @@ KBUILD_CFLAGS += -Wno-shift-overflow
 #GCC 7.x.x
 KBUILD_CFLAGS += -Wno-duplicate-decl-specifier
 #GCC 9.x.x
-KBUILD_CFLAGS += -Wno-misleading-identation -Wno-stringpop-overflow \
+KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-stringpop-overflow= \
                  -Wno-memset-elt-size -Wno-bool-operation -Wno-maybe-uninitialized\
                  -Wno-switch-unreachable
 
