@@ -389,7 +389,7 @@ LINUXINCLUDE    := \
 LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wall -Wundef -Wno-strict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security\
@@ -759,7 +759,9 @@ KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
 		 -Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
 		 -Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
 		 -Wno-undefined-optimized -fno-integrated-as -Wno-compare-distinct-pointer-types \
-         -Wno-gnu-variable-sized-type-not-at-end
+         -Wno-gnu-variable-sized-type-not-at-end -Wno-gnu-folding-constant -Wno-tautological-compare\
+         -Wno-address-of-packed-member -Wno-tautological-pointer-compare -Wno-gnu-designator\
+         -Wno-pointer-bool-conversion -Wno-tautological-constant-out-of-range-compare
 else
 
 # These warnings generated too much noise in a regular build.
