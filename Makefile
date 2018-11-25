@@ -409,7 +409,7 @@ KBUILD_CFLAGS += -Wno-duplicate-decl-specifier
 #GCC 9.x.x
 KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-stringop-overflow \
                  -Wno-memset-elt-size -Wno-bool-operation -Wno-maybe-uninitialized\
-                 -Wno-switch-unreachable
+                 -Wno-switch-unreachable -Wno-compare-distinct-pointer-types
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
