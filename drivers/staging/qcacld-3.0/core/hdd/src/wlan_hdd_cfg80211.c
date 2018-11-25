@@ -11095,34 +11095,31 @@ end:
  *
  * Return: 0 for success, non-zero for failure
  */
-static int hdd_post_get_chain_rssi_rsp(hdd_context_t *hdd_ctx,
-				       struct hdd_chain_rssi_priv *priv)
+static int hdd_post_get_chain_rssi_rsp(hdd_context_t *hdd_ctx)
 {
 	struct sk_buff *skb = NULL;
-	int data_len = sizeof(priv->result);
-	int rc;
+	int data_len = sizeof(hdd_ctx->chain_rssi_context.result);
 
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(hdd_ctx->wiphy,
 		data_len+NLMSG_HDRLEN);
 
 	if (!skb) {
-		hdd_err("cfg80211_vendor_event_alloc failed");
+		hdd_err(FL("cfg80211_vendor_event_alloc failed"));
 		return -ENOMEM;
 	}
 
-	rc = nla_put(skb, QCA_WLAN_VENDOR_ATTR_CHAIN_RSSI, data_len,
-		     &priv->result);
-	if (rc) {
-		hdd_err("put fail");
+	if (nla_put(skb, QCA_WLAN_VENDOR_ATTR_CHAIN_RSSI, data_len,
+			&hdd_ctx->chain_rssi_context.result)) {
+		hdd_err(FL("put fail"));
 		goto nla_put_failure;
 	}
 
 	cfg80211_vendor_cmd_reply(skb);
-	return rc;
+	return 0;
 
 nla_put_failure:
 	kfree_skb(skb);
-	return rc;
+	return -EINVAL;
 }
 
 /**
@@ -11142,18 +11139,13 @@ static int __wlan_hdd_cfg80211_get_chain_rssi(struct wiphy *wiphy,
 	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(wdev->netdev);
 	struct get_chain_rssi_req_params req_msg;
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
-	struct hdd_chain_rssi_priv *priv;
+	struct hdd_chain_rssi_context *context;
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_MAX + 1];
 	QDF_STATUS status;
 	int retval;
+	unsigned long rc;
 	const int mac_len = sizeof(req_msg.peer_macaddr);
 	int msg_len;
-	struct hdd_request *request;
-	void *cookie;
-	static struct hdd_request_params params = {
-		.priv_size = sizeof(*priv),
-		.timeout_ms = WLAN_WAIT_TIME_CHAIN_RSSI,
-	};
 
 	ENTER();
 
@@ -11185,42 +11177,33 @@ static int __wlan_hdd_cfg80211_get_chain_rssi(struct wiphy *wiphy,
 	       nla_data(tb[QCA_WLAN_VENDOR_ATTR_MAC_ADDR]), mac_len);
 	req_msg.session_id = pAdapter->sessionId;
 
-	request = hdd_request_alloc(&params);
-	if (!request) {
-		hdd_err("Request Allocation Failure");
-		return -ENOMEM;
-	}
-
-	cookie = hdd_request_cookie(request);
-
-	priv = hdd_request_priv(request);
-
-	sme_chain_rssi_register_callback(hdd_ctx->hHal,
-					 wlan_hdd_cfg80211_chainrssi_callback,
-					 cookie);
+	spin_lock(&hdd_context_lock);
+	context = &hdd_ctx->chain_rssi_context;
+	INIT_COMPLETION(context->response_event);
+	context->ignore_result = false;
+	spin_unlock(&hdd_context_lock);
 
 	status = sme_get_chain_rssi(hdd_ctx->hHal, &req_msg);
 	if (!QDF_IS_STATUS_SUCCESS(status)) {
-		hdd_err("sme_get_chain_rssi failed(err=%d)", status);
-		retval = -EINVAL;
-		goto exit;
+		hdd_err(FL("sme_get_chain_rssi failed(err=%d)"), status);
+		return -EINVAL;
 	}
 
-	retval = hdd_request_wait_for_response(request);
-	if (retval) {
-		hdd_err("Target response timed out for get chain rssi");
-		retval = -ETIMEDOUT;
-		goto exit;
+	rc = wait_for_completion_timeout(&context->response_event,
+			msecs_to_jiffies(WLAN_WAIT_TIME_CHAIN_RSSI));
+	if (!rc) {
+		hdd_err(FL("Target response timed out"));
+		spin_lock(&hdd_context_lock);
+		context->ignore_result = true;
+		spin_unlock(&hdd_context_lock);
+		return -ETIMEDOUT;
 	}
 
-	retval = hdd_post_get_chain_rssi_rsp(hdd_ctx, priv);
+	retval = hdd_post_get_chain_rssi_rsp(hdd_ctx);
 	if (retval)
-		hdd_err("Failed to send chain rssi to user space");
+		hdd_err(FL("Failed to send chain rssi to user space"));
 
 	EXIT();
-exit:
-	sme_chain_rssi_deregister_callback(hdd_ctx->hHal);
-	hdd_request_put(request);
 	return retval;
 }
 
@@ -11246,27 +11229,33 @@ static int wlan_hdd_cfg80211_get_chain_rssi(struct wiphy *wiphy,
 	return ret;
 }
 
-void wlan_hdd_cfg80211_chainrssi_callback(void *ctx, void *pmsg, void *cookie)
+void wlan_hdd_cfg80211_chainrssi_callback(void *ctx, void *pmsg)
 {
+	hdd_context_t *hdd_ctx = (hdd_context_t *)ctx;
 	struct chain_rssi_result *data = (struct chain_rssi_result *)pmsg;
-	struct hdd_chain_rssi_priv *priv;
-	struct hdd_request *request = NULL;
+	struct hdd_chain_rssi_context *context;
+	bool ignore_result;
 
 	ENTER();
 
-	request = hdd_request_get(cookie);
-	if (!request) {
-		hdd_err("Obselete request");
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return;
+
+	spin_lock(&hdd_context_lock);
+	context = &hdd_ctx->chain_rssi_context;
+	ignore_result = context->ignore_result;
+
+	if (ignore_result) {
+		hdd_err(FL("Ignore the result received after timeout"));
+		spin_unlock(&hdd_context_lock);
 		return;
 	}
 
-	priv = hdd_request_priv(request);
+	memcpy(&context->result, data->chain_rssi,
+		sizeof(data->chain_rssi));
 
-	memcpy(&priv->result, data, sizeof(*data));
-
-	hdd_request_complete(request);
-	hdd_request_put(request);
-	EXIT();
+	complete(&context->response_event);
+	spin_unlock(&hdd_context_lock);
 }
 
 /**

@@ -1025,12 +1025,10 @@ QDF_STATUS sme_ll_stats_clear_req(tHalHandle hHal,
 QDF_STATUS sme_ll_stats_set_req(tHalHandle hHal,
 		tSirLLStatsSetReq *psetStatsReq);
 QDF_STATUS sme_ll_stats_get_req(tHalHandle hHal,
-				tSirLLStatsGetReq *pgetStatsReq,
-				void *context);
+		tSirLLStatsGetReq *pgetStatsReq);
 QDF_STATUS sme_set_link_layer_stats_ind_cb(tHalHandle hHal,
 		void (*callbackRoutine)(void *callbackCtx,
-					int indType, void *pRsp,
-					void *cookie));
+				int indType, void *pRsp));
 QDF_STATUS sme_set_link_layer_ext_cb(tHalHandle hal,
 		     void (*ll_stats_ext_cb)(tHddHandle callback_ctx,
 					     tSirLLStatsResults * rsp));
@@ -1760,26 +1758,11 @@ QDF_STATUS sme_get_chain_rssi(tHalHandle phal,
  * sme_chain_rssi_register_callback - chain rssi callback
  * @phal: global hal handle
  * @pchain_rssi_ind_cb: callback function pointer
- * @context: callback context
  *
  * Return: QDF_STATUS enumeration.
  */
-QDF_STATUS
-sme_chain_rssi_register_callback(tHalHandle phal,
-				 void (*pchain_rssi_ind_cb)(void *ctx,
-							    void *pmsg,
-							    void *context),
-				 void *context);
-
-/**
- * sme_chain_rssi_deregister_callback() - De-register chain rssi callback
- * @hal: global hal handle
- *
- * This function De-registers the scandone callback  to SME
- *
- * Return: None
- */
-void sme_chain_rssi_deregister_callback(tHalHandle hal);
+QDF_STATUS sme_chain_rssi_register_callback(tHalHandle phal,
+			void (*pchain_rssi_ind_cb)(void *ctx, void *pmsg));
 
 /**
  * sme_process_msg_callback() - process callback message from LIM

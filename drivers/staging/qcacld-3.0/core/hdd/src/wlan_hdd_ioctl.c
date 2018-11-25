@@ -89,16 +89,6 @@
  */
 #define NUM_OF_STA_DATA_TO_PRINT 16
 
-#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
-/**
- * struct enable_ext_wow_priv - Private data structure for ext wow
- * @ext_wow_should_suspend: Suspend status of ext wow
- */
-struct enable_ext_wow_priv {
-	bool ext_wow_should_suspend;
-};
-#endif
-
 /*
  * Android DRIVER command structures
  */
@@ -1937,28 +1927,16 @@ static QDF_STATUS hdd_parse_plm_cmd(uint8_t *pValue, tSirPlmReq *pPlmRequest)
 #endif
 
 #ifdef WLAN_FEATURE_EXTWOW_SUPPORT
-/**
- * wlan_hdd_ready_to_extwow() - Callback function for enable ext wow
- * @cookie: callback context
- * @is_success: suspend status of ext wow
- *
- * Return: none
- */
-static void wlan_hdd_ready_to_extwow(void *cookie, bool is_success)
+static void wlan_hdd_ready_to_extwow(void *callbackContext, bool is_success)
 {
-	struct hdd_request *request = NULL;
-	struct enable_ext_wow_priv *priv = NULL;
+	hdd_context_t *hdd_ctx = (hdd_context_t *) callbackContext;
+	int rc;
 
-	request = hdd_request_get(cookie);
-	if (!request) {
-		hdd_err("Obselete request");
+	rc = wlan_hdd_validate_context(hdd_ctx);
+	if (rc)
 		return;
-	}
-	priv = hdd_request_priv(request);
-	priv->ext_wow_should_suspend = is_success;
-
-	hdd_request_complete(request);
-	hdd_request_put(request);
+	hdd_ctx->ext_wow_should_suspend = is_success;
+	complete(&hdd_ctx->ready_to_extwow);
 }
 
 static int hdd_enable_ext_wow(hdd_adapter_t *adapter,
@@ -1968,46 +1946,31 @@ static int hdd_enable_ext_wow(hdd_adapter_t *adapter,
 	QDF_STATUS qdf_ret_status;
 	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
 	tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(adapter);
-	int rc = 0;
-	struct enable_ext_wow_priv *priv = NULL;
-	struct hdd_request *request = NULL;
-	void *cookie = NULL;
-	struct hdd_request_params hdd_params = {
-		.priv_size = sizeof(*priv),
-		.timeout_ms = WLAN_WAIT_TIME_READY_TO_EXTWOW,
-	};
+	int rc;
 
 	qdf_mem_copy(&params, arg_params, sizeof(params));
 
-	request = hdd_request_alloc(&hdd_params);
-	if (!request) {
-		hdd_err("Request Allocation Failure");
-		return -ENOMEM;
-	}
-	cookie = hdd_request_cookie(request);
+	INIT_COMPLETION(hdd_ctx->ready_to_extwow);
 
 	qdf_ret_status = sme_configure_ext_wow(hHal, &params,
-					       &wlan_hdd_ready_to_extwow,
-					       cookie);
+						&wlan_hdd_ready_to_extwow,
+						hdd_ctx);
 	if (QDF_STATUS_SUCCESS != qdf_ret_status) {
 		hdd_err("sme_configure_ext_wow returned failure %d",
-			qdf_ret_status);
-		rc = -EPERM;
-		goto exit;
+			 qdf_ret_status);
+		return -EPERM;
 	}
 
-	rc = hdd_request_wait_for_response(request);
-	if (rc) {
+	rc = wait_for_completion_timeout(&hdd_ctx->ready_to_extwow,
+			msecs_to_jiffies(WLAN_WAIT_TIME_READY_TO_EXTWOW));
+	if (!rc) {
 		hdd_err("Failed to get ready to extwow");
-		rc = -EPERM;
-		goto exit;
+		return -EPERM;
 	}
 
-	priv = hdd_request_priv(request);
-	if (!priv->ext_wow_should_suspend) {
+	if (!hdd_ctx->ext_wow_should_suspend) {
 		hdd_err("Received ready to ExtWoW failure");
-		rc = -EPERM;
-		goto exit;
+		return -EPERM;
 	}
 
 	if (hdd_ctx->config->extWowGotoSuspend) {
@@ -2019,8 +1982,8 @@ static int hdd_enable_ext_wow(hdd_adapter_t *adapter,
 		rc = wlan_hdd_cfg80211_suspend_wlan(hdd_ctx->wiphy, NULL);
 		if (rc < 0) {
 			hdd_err("wlan_hdd_cfg80211_suspend_wlan failed, error = %d",
-				rc);
-			goto exit;
+				 rc);
+			return rc;
 		}
 
 		rc = wlan_hdd_bus_suspend(state);
@@ -2028,12 +1991,11 @@ static int hdd_enable_ext_wow(hdd_adapter_t *adapter,
 			hdd_err("wlan_hdd_bus_suspend failed, status = %d",
 				rc);
 			wlan_hdd_cfg80211_resume_wlan(hdd_ctx->wiphy);
-			goto exit;
+			return rc;
 		}
 	}
-exit:
-	hdd_request_put(request);
-	return rc;
+
+	return 0;
 }
 
 static int hdd_enable_ext_wow_parser(hdd_adapter_t *adapter, int vdev_id,
@@ -6714,35 +6676,6 @@ QDF_STATUS hdd_update_smps_antenna_mode(hdd_context_t *hdd_ctx, int mode)
 }
 
 /**
- * wlan_hdd_soc_set_antenna_mode_cb() - Callback for set dual
- * mac scan config
- * @status: Status of set antenna mode
- * @context: callback context
- *
- * Callback on setting the dual mac configuration
- *
- * Return: None
- */
-static void
-wlan_hdd_soc_set_antenna_mode_cb(enum set_antenna_mode_status status,
-				 void *context)
-{
-	struct hdd_request *request = NULL;
-
-	hdd_debug("Status: %d", status);
-
-	request = hdd_request_get(context);
-	if (!request) {
-		hdd_err("obsolete request");
-		return;
-	}
-
-	/* Signal the completion of set dual mac config */
-	hdd_request_complete(request);
-	hdd_request_put(request);
-}
-
-/**
  * drv_cmd_set_antenna_mode() - SET ANTENNA MODE driver command
  * handler
  * @adapter: Pointer to network adapter
@@ -6762,11 +6695,6 @@ static int drv_cmd_set_antenna_mode(hdd_adapter_t *adapter,
 	int ret = 0;
 	int mode;
 	uint8_t *value = command;
-	struct hdd_request *request = NULL;
-	static const struct hdd_request_params request_params = {
-		.priv_size = 0,
-		.timeout_ms = WLAN_WAIT_TIME_ANTENNA_MODE_REQ,
-	};
 
 	if (((1 << QDF_STA_MODE) != hdd_ctx->concurrency_mode) ||
 	    (hdd_ctx->no_of_active_sessions[QDF_STA_MODE] > 1)) {
@@ -6828,40 +6756,36 @@ static int drv_cmd_set_antenna_mode(hdd_adapter_t *adapter,
 			goto exit;
 	}
 
-	request = hdd_request_alloc(&request_params);
-	if (!request) {
-		hdd_err("Request Allocation Failure");
-		ret = -ENOMEM;
-		goto exit;
-	}
-
-	params.set_antenna_mode_ctx = hdd_request_cookie(request);
-	params.set_antenna_mode_resp = wlan_hdd_soc_set_antenna_mode_cb;
+	params.set_antenna_mode_resp =
+	    (void *)wlan_hdd_soc_set_antenna_mode_cb;
 	hdd_debug("Set antenna mode rx chains: %d tx chains: %d",
 		 params.num_rx_chains,
 		 params.num_tx_chains);
 
+
+	INIT_COMPLETION(hdd_ctx->set_antenna_mode_cmpl);
 	status = sme_soc_set_antenna_mode(hdd_ctx->hHal, &params);
 	if (QDF_STATUS_SUCCESS != status) {
 		hdd_err("set antenna mode failed status : %d", status);
 		ret = -EFAULT;
-		goto request_put;
+		goto exit;
 	}
 
-	ret = hdd_request_wait_for_response(request);
-	if (ret) {
+	ret = wait_for_completion_timeout(
+		&hdd_ctx->set_antenna_mode_cmpl,
+		msecs_to_jiffies(WLAN_WAIT_TIME_ANTENNA_MODE_REQ));
+	if (!ret) {
+		ret = -EFAULT;
 		hdd_err("send set antenna mode timed out");
-		goto request_put;
+		goto exit;
 	}
 
 	status = hdd_update_smps_antenna_mode(hdd_ctx, mode);
 	if (QDF_STATUS_SUCCESS != status) {
 		ret = -EFAULT;
-		goto request_put;
+		goto exit;
 	}
 	ret = 0;
-request_put:
-	hdd_request_put(request);
 exit:
 #ifdef FEATURE_WLAN_TDLS
 	/* Reset tdls NSS flags */
