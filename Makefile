@@ -392,7 +392,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
-		   -Wno-format-security -march=armv8.2-a -mfpu=crypto-neon-fp-armv8\
+		   -Wno-format-security\
 		   -std=gnu89
 #GCC 5.x.x
 KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
@@ -406,10 +406,6 @@ KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
 KBUILD_CFLAGS += -Wno-shift-overflow 
 #GCC 7.x.x
 KBUILD_CFLAGS += -Wno-duplicate-decl-specifier
-#GCC 9.x.x
-KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-stringop-overflow \
-                 -Wno-memset-elt-size -Wno-bool-operation -Wno-maybe-uninitialized\
-                 -Wno-switch-unreachable -Wno-compare-distinct-pointer-types
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
@@ -762,7 +758,8 @@ KBUILD_AFLAGS += $(call cc-option, -no-integrated-as)
 KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
 		 -Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
 		 -Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
-		 -Wno-undefined-optimized -fno-integrated-as -Wno-compare-distinct-pointer-types
+		 -Wno-undefined-optimized -fno-integrated-as -Wno-compare-distinct-pointer-types \
+         -Wno-gnu-variable-sized-type-not-at-end
 else
 
 # These warnings generated too much noise in a regular build.
