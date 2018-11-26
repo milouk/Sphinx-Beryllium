@@ -9,7 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 #include <linux/debugfs.h>
 #include <linux/spinlock.h>
 #include <linux/errno.h>
@@ -20,7 +19,7 @@
 
 #include <linux/pmic-voter.h>
 
-#define NUM_MAX_CLIENTS		16
+#define NUM_MAX_CLIENTS		24
 #define DEBUG_FORCE_CLIENT	"DEBUG_FORCE_CLIENT"
 
 static DEFINE_SPINLOCK(votable_list_slock);
@@ -179,7 +178,7 @@ static char *get_client_str(struct votable *votable, int client_id)
 	if (client_id == -EINVAL)
 		return NULL;
 
-	return votable->client_strs[client_id];
+	 return votable->client_strs[client_id];
 }
 
 void lock_votable(struct votable *votable)
@@ -380,7 +379,7 @@ int vote(struct votable *votable, const char *client_str, bool enabled, int val)
 
 	if ((votable->votes[client_id].enabled == enabled) &&
 		(votable->votes[client_id].value == val)) {
-		pr_err("%s: %s,%d same vote %s of val=%d\n",
+		pr_debug("%s: %s,%d same vote %s of val=%d\n",
 				votable->name,
 				client_str, client_id,
 				enabled ? "on" : "off",
@@ -415,14 +414,12 @@ int vote(struct votable *votable, const char *client_str, bool enabled, int val)
 	default:
 		return -EINVAL;
 	}
-
 	if (strcmp(votable->name, "FG_WS") != 0) {
 		pr_info("%s: current vote is now %d voted by %s,%d,previous voted %d\n",
 				votable->name, effective_result,
 				get_client_str(votable, effective_id),
 				effective_id, votable->effective_result);
 	}
-
 	/*
 	 * Note that the callback is called with a NULL string and -EINVAL
 	 * result when there are no enabled votes

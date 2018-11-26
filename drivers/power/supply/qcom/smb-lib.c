@@ -1,5 +1,4 @@
 /* Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
- * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -43,8 +42,6 @@
 			pr_debug("%s: %s: " fmt, chg->name,	\
 				__func__, ##__VA_ARGS__);	\
 	} while (0)
-
-static void smblib_wireless_set_enable(struct smb_charger *chg, int enable);
 
 static bool is_secure(struct smb_charger *chg, int addr)
 {
@@ -123,7 +120,7 @@ static int smblib_get_jeita_cc_delta(struct smb_charger *chg, int *cc_delta_ua)
 	}
 
 	smblib_dbg(chg, PR_REGISTER, "%s BATTERY_CHARGER_STATUS_2 = 0x%02x\n",
-				__func__, stat);
+                __func__, stat);
 
 	if (!(stat & BAT_TEMP_STATUS_SOFT_LIMIT_MASK)) {
 		*cc_delta_ua = 0;
@@ -150,9 +147,9 @@ static int smblib_get_jeita_cc_delta(struct smb_charger *chg, int *cc_delta_ua)
 				pr_err("%s: Couldn't configure jeita_cc rc=%d\n", __func__, rc);
 		}
 	} else if ((stat & BAT_TEMP_STATUS_COLD_SOFT_LIMIT_BIT) == BAT_TEMP_STATUS_COLD_SOFT_LIMIT_BIT) {
-		if (batt_temp.intval >= 0) {
+		if (batt_temp.intval >= 0){
 			if (batt_temp.intval <= BATT_TEMP_CRITICAL_LOW) {		/*set 0.1C on 0~5 Degree */
-				rc = smblib_set_charge_param(chg, &chg->param.jeita_cc_comp, chg->jeita_ccomp_low_delta);
+				rc = smblib_set_charge_param(chg, &chg->param.jeita_cc_comp,chg->jeita_ccomp_low_delta);
 				if (rc < 0)
 					pr_err("%s: Couldn't configure jeita_cc rc=%d\n", __func__, rc);
 			} else {						/*set 0.3C on 5~15 Degree */
@@ -186,7 +183,7 @@ static void smblib_monitor_low_temp_work(struct work_struct *work)
 		smblib_err(chg, "Couldn't get batt temp rc=%d\n", rc);
 		return;
 	}
-	if (batt_temp.intval >= 0 && batt_temp.intval <= BATT_TEMP_COOL_THR) {		/*set 0.1C on 0~5 Degree */
+	if (batt_temp.intval >= 0 && batt_temp.intval<= BATT_TEMP_COOL_THR) {		/*set 0.1C on 0~5 Degree */
 		rc = smblib_get_jeita_cc_delta(chg, &jeita_cc_delta_ua);
 		if (rc < 0) {
 			smblib_err(chg, "Couldn't get jeita cc delta rc=%d\n", rc);
@@ -1892,7 +1889,7 @@ int smblib_get_prop_input_suspend(struct smb_charger *chg,
 {
 	val->intval
 		= (get_client_vote(chg->usb_icl_votable, USER_VOTER) == 0)
-		 || get_client_vote(chg->dc_suspend_votable, USER_VOTER);
+		 && get_client_vote(chg->dc_suspend_votable, USER_VOTER);
 	return 0;
 }
 
@@ -2258,7 +2255,12 @@ int smblib_set_prop_input_suspend(struct smb_charger *chg,
 		return rc;
 	}
 
-	smblib_wireless_set_enable(chg, !val->intval);
+	rc = vote(chg->dc_suspend_votable, USER_VOTER, (bool)val->intval, 0);
+	if (rc < 0) {
+		smblib_err(chg, "Couldn't vote to %s DC rc=%d\n",
+			(bool)val->intval ? "suspend" : "resume", rc);
+		return rc;
+	}
 
 	power_supply_changed(chg->batt_psy);
 	return rc;
@@ -2325,75 +2327,11 @@ int smblib_set_prop_dc_temp_level(struct smb_charger *chg,
 		return vote(chg->dc_icl_votable, THERMAL_DAEMON_VOTER, false, 0);
 
 	smblib_dbg(chg, PR_OEM, "thermal level:%d, batt temp:%d, thermal_levels:%d dc_present=%d\n",
-			val->intval, batt_temp.intval, chg->dc_thermal_levels, dc_present.intval);
+			val->intval, batt_temp.intval, chg->dc_thermal_levels,dc_present.intval);
 
 	vote(chg->dc_icl_votable, THERMAL_DAEMON_VOTER, true,
 		chg->thermal_mitigation_dc[chg->dc_temp_level]);
 
-	return 0;
-}
-
-int smblib_set_prop_system_temp_level(struct smb_charger *chg,
-				const union power_supply_propval *val)
-{
-	int rc;
-	union power_supply_propval batt_temp;
-
-	rc = smblib_get_prop_batt_temp(chg, &batt_temp);
-	if (rc < 0) {
-		pr_err("Couldn't get batt temp rc=%d\n", rc);
-		return -EINVAL;
-	}
-
-	if (val->intval < 0)
-		return -EINVAL;
-
-	if (chg->thermal_levels <= 0)
-		return -EINVAL;
-
-	if (val->intval > chg->thermal_levels)
-		return -EINVAL;
-
-	chg->system_temp_level = val->intval;
-
-	if (!chg->typec_present)
-		return 0;
-
-	if (chg->system_temp_level == chg->thermal_levels)
-		return vote(chg->chg_disable_votable,
-			THERMAL_DAEMON_VOTER, true, 0);
-
-	vote(chg->chg_disable_votable, THERMAL_DAEMON_VOTER, false, 0);
-	if (chg->system_temp_level == 0)
-		return vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, false, 0);
-
-	smblib_dbg(chg, PR_OEM, "thermal level:%d, batt temp:%d, thermal_levels:%d"
-			"chg->system_temp_level:%d, chg->typec_present=%d charger_type:%d\n",
-			val->intval, batt_temp.intval, chg->thermal_levels,
-			chg->system_temp_level, chg->typec_present, chg->usb_psy_desc.type);
-
-#ifdef CONFIG_THERMAL
-	switch (chg->usb_psy_desc.type) {
-	case POWER_SUPPLY_TYPE_USB_DCP:
-		vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, true,
-				chg->thermal_mitigation_dcp[chg->system_temp_level]);
-		break;
-	case POWER_SUPPLY_TYPE_USB_HVDCP:
-		vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, true,
-				chg->thermal_mitigation_qc2[chg->system_temp_level]);
-		break;
-	case POWER_SUPPLY_TYPE_USB_HVDCP_3:
-		vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, true,
-				chg->thermal_mitigation_qc3[chg->system_temp_level]);
-		break;
-	default:
-		vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, false, 0);
-		break;
-	}
-#else
-	vote(chg->fcc_votable, THERMAL_DAEMON_VOTER, true,
-			chg->thermal_mitigation[chg->system_temp_level]);
-#endif
 	return 0;
 }
 
@@ -2464,7 +2402,8 @@ static void smblib_reg_work(struct work_struct *work)
 							icl_settle, usb_cur_in, usb_vol_in);
 		if (!chg->usb_main_psy) {
 			chg->usb_main_psy = power_supply_get_by_name("main");
-		} else {
+		}
+		else {
 			power_supply_get_property(chg->usb_main_psy,
 							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
 							&val);
@@ -2474,7 +2413,8 @@ static void smblib_reg_work(struct work_struct *work)
 
 		if (!chg->pl.psy) {
 			chg->pl.psy = power_supply_get_by_name("parallel");
-		} else {
+		}
+		else {
 			power_supply_get_property(chg->pl.psy,
 							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
 							&val);
@@ -2487,15 +2427,147 @@ static void smblib_reg_work(struct work_struct *work)
 		}
 
 		smblib_dbg(chg, PR_OEM, "Type-C orientation[%d], Type-C mode[%d], Real Charge Type[%d]\n",
-					typec_orientation, typec_mode, charge_type);
+                                                        typec_orientation, typec_mode, charge_type);
 
 		schedule_delayed_work(&chg->reg_work,
 			CHARGING_PERIOD_S * HZ);
-	} else
+	}
+	else
 		schedule_delayed_work(&chg->reg_work,
 			NOT_CHARGING_PERIOD_S * HZ);
 }
+#ifdef CONFIG_THERMAL
+#define MAX_TEMP_LEVEL		16
+/* percent of ICL compared to base 5V for different PD voltage_min voltage */
+#define PD_6P5V_PERCENT		85
+#define PD_7P5V_PERCENT		75
+#define PD_8P5V_PERCENT		65
+#define PD_9V_PERCENT		60
+/* PD voltage range is 5V to 9V for SDM660 platform */
+#define PD_MICRO_5V		5000000
+#define PD_MICRO_5P5V	5500000
+#define PD_MICRO_6P5V	6500000
+#define PD_MICRO_7P5V	7500000
+#define PD_MICRO_8P5V	8500000
+#define PD_MICRO_9V		9000000
+static int smblib_therm_charging(struct smb_charger *chg)
+{
+	int thermal_icl_ua = 0;
+	int rc;
 
+	if (chg->system_temp_level >= MAX_TEMP_LEVEL)
+		return 0;
+
+	switch (chg->usb_psy_desc.type) {
+	case POWER_SUPPLY_TYPE_USB_HVDCP:
+		thermal_icl_ua = chg->thermal_mitigation_qc2[chg->system_temp_level];
+		break;
+	case POWER_SUPPLY_TYPE_USB_HVDCP_3:
+		thermal_icl_ua =
+			chg->thermal_mitigation_qc3[chg->system_temp_level];
+		break;
+	case POWER_SUPPLY_TYPE_USB_PD:
+		if (chg->voltage_min_uv >= PD_MICRO_5V
+				&& chg->voltage_min_uv < PD_MICRO_5P5V)
+			thermal_icl_ua =
+					chg->thermal_mitigation_pd_base[chg->system_temp_level];
+		else if (chg->voltage_min_uv >= PD_MICRO_5P5V
+					&& chg->voltage_min_uv < PD_MICRO_6P5V)
+			thermal_icl_ua =
+					chg->thermal_mitigation_pd_base[chg->system_temp_level]
+						* PD_6P5V_PERCENT / 100;
+		else if (chg->voltage_min_uv >= PD_MICRO_6P5V
+					&& chg->voltage_min_uv < PD_MICRO_7P5V)
+			thermal_icl_ua =
+					chg->thermal_mitigation_pd_base[chg->system_temp_level]
+						* PD_7P5V_PERCENT / 100;
+		else if (chg->voltage_min_uv >= PD_MICRO_7P5V
+					&& chg->voltage_min_uv <= PD_MICRO_8P5V)
+			thermal_icl_ua =
+					chg->thermal_mitigation_pd_base[chg->system_temp_level]
+						* PD_8P5V_PERCENT / 100;
+		else if (chg->voltage_min_uv >= PD_MICRO_8P5V)
+			thermal_icl_ua =
+					chg->thermal_mitigation_pd_base[chg->system_temp_level]
+						* PD_9V_PERCENT / 100;
+		else
+			thermal_icl_ua =
+					chg->thermal_mitigation_pd_base[chg->system_temp_level];
+		break;
+	case POWER_SUPPLY_TYPE_USB_DCP:
+	default:
+		thermal_icl_ua = chg->thermal_mitigation_dcp[chg->system_temp_level];
+		break;
+	}
+
+	if (chg->system_temp_level == 0) {
+		/* if therm_lvl_sel is 0, clear thermal voter */
+		rc = vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, false, 0);
+		if (rc < 0)
+			pr_err("Couldn't disable USB thermal ICL vote rc=%d\n",
+				rc);
+	} else {
+		pr_info("thermal_icl_ua is %d, chg->system_temp_level: %d\n",
+				thermal_icl_ua, chg->system_temp_level);
+
+		rc = vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, true,
+					thermal_icl_ua);
+		if (rc < 0)
+			pr_err("Couldn't disable USB thermal ICL vote rc=%d\n",
+				rc);
+	}
+
+	return rc;
+}
+
+int smblib_set_prop_system_temp_level(struct smb_charger *chg,
+				const union power_supply_propval *val)
+{
+	int rc;
+	union power_supply_propval batt_temp = {0, };
+
+	rc = smblib_get_prop_batt_temp(chg, &batt_temp);
+	if (rc < 0) {
+		pr_err("Couldn't get batt temp rc=%d\n", rc);
+		return -EINVAL;
+	}
+
+	if (val->intval < 0)
+		return -EINVAL;
+
+	if (chg->thermal_levels <= 0)
+		return -EINVAL;
+
+	if (val->intval > chg->thermal_levels)
+		return -EINVAL;
+
+	chg->system_temp_level = val->intval;
+
+	if (!chg->typec_present)
+		return 0;
+
+	if (chg->system_temp_level >= chg->thermal_levels)
+		return vote(chg->chg_disable_votable,
+			THERMAL_DAEMON_VOTER, true, 0);
+
+	vote(chg->chg_disable_votable, THERMAL_DAEMON_VOTER, false, 0);
+
+#ifdef CONFIG_THERMAL
+	smblib_therm_charging(chg);
+#else
+	if (chg->system_temp_level == 0)
+		return vote(chg->fcc_votable, THERMAL_DAEMON_VOTER, false, 0);
+
+	vote(chg->fcc_votable, THERMAL_DAEMON_VOTER, true,
+			chg->thermal_mitigation[chg->system_temp_level]);
+#endif
+	smblib_dbg(chg, PR_OEM, "thermal level:%d, batt temp:%d, thermal_levels:%d"
+                        "chg->system_temp_level:%d, chg->typec_present=%d charger_type:%d\n",
+                        val->intval, batt_temp.intval, chg->thermal_levels,
+                        chg->system_temp_level, chg->typec_present, chg->usb_psy_desc.type);
+	return 0;
+}
+#endif
 int smblib_set_prop_charge_qnovo_enable(struct smb_charger *chg,
 				  const union power_supply_propval *val)
 {
@@ -2787,20 +2859,6 @@ int smblib_set_prop_dc_online(struct smb_charger *chg,
 	return 0;
 }
 
-int smblib_set_prop_wireless_wakelock(struct smb_charger *chg,
-				const union power_supply_propval *val)
-{
-	if (val->intval) {
-		vote(chg->awake_votable, DC_AWAKE_VOTER, true, 0);
-		schedule_delayed_work(&chg->dc_input_current_work,
-						msecs_to_jiffies(100));
-	} else {
-		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
-		cancel_delayed_work_sync(&chg->dc_input_current_work);
-	}
-	return 0;
-}
-
 /*******************
  * USB PSY GETTERS *
  *******************/
@@ -2865,6 +2923,39 @@ int smblib_get_prop_usb_voltage_max(struct smb_charger *chg,
 
 	return 0;
 }
+
+/*
+int smblib_get_prop_dc_current_now(struct smb_charger *chg,
+				    union power_supply_propval *val)
+{
+	int rc = 0;
+	int retry = 3;
+
+	rc = smblib_get_prop_dc_present(chg, val);
+	if (rc < 0 || !val->intval)
+		return rc;
+
+	if (!chg->iio.dcin_i_chan ||
+		PTR_ERR(chg->iio.dcin_i_chan) == -EPROBE_DEFER)
+		chg->iio.dcin_i_chan = iio_channel_get(chg->dev, "dcin_i");
+
+	if (IS_ERR(chg->iio.dcin_i_chan))
+		return PTR_ERR(chg->iio.dcin_i_chan);
+
+	while(retry)
+	{
+		rc = iio_read_channel_processed(chg->iio.dcin_i_chan, &val->intval);
+		if(rc > 0)
+			break;
+		else{
+			retry--;
+			mdelay(100);
+		}
+	}
+
+	return rc;
+}
+*/
 
 int smblib_get_prop_usb_voltage_now(struct smb_charger *chg,
 				    union power_supply_propval *val)
@@ -3175,7 +3266,7 @@ static int smblib_handle_usb_current(struct smb_charger *chg,
 {
 	int rc = 0, rp_ua, typec_mode;
 
-	if (usb_current == USBIN_100MA)
+	if (usb_current < USBIN_500MA && usb_current > 0)
 		usb_current = USBIN_500MA;
 
 	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_FLOAT) {
@@ -3240,6 +3331,32 @@ int smblib_set_prop_rerun_apsd(struct smb_charger *chg,
 	if (val->intval == 1) {
 		chg->float_rerun_apsd = true;
 		smblib_rerun_apsd(chg);
+	}
+	return 0;
+}
+
+int smblib_get_prop_type_recheck(struct smb_charger *chg,
+				    union power_supply_propval *val)
+{
+	int status = 0;
+
+	if (chg->recheck_charger)
+		status |= BIT(0) << 8;
+
+	status |= chg->precheck_charger_type << 4;
+	status |= chg->real_charger_type;
+
+	val->intval = status;
+
+	return 0;
+}
+
+int smblib_set_prop_type_recheck(struct smb_charger *chg,
+				    const union power_supply_propval *val)
+{
+	if (val->intval == 0) {
+		cancel_delayed_work_sync(&chg->charger_type_recheck);
+		chg->recheck_charger = false;
 	}
 	return 0;
 }
@@ -3653,6 +3770,7 @@ int smblib_get_prop_fcc_delta(struct smb_charger *chg,
 /************************
  * USB MAIN PSY SETTERS *
  ************************/
+
 int smblib_get_charge_current(struct smb_charger *chg,
 				int *total_current_ua)
 {
@@ -3969,6 +4087,7 @@ void smblib_usb_plugin_hard_reset_locked(struct smb_charger *chg)
 				vote(chg->usb_icl_votable, WEAK_CHARGER_VOTER,
 						false, 0);
 				vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
+				cancel_delayed_work_sync(&chg->charger_type_recheck);
 			}
 		}
 	}
@@ -3980,18 +4099,18 @@ void smblib_usb_plugin_hard_reset_locked(struct smb_charger *chg)
 
 static void smblib_wireless_set_enable(struct smb_charger *chg, int enable)
 {
-		int rc = 0;
+	int rc = 0;
 	union power_supply_propval val = {0, };
 
 	chg->idtp_psy = power_supply_get_by_name("idt");
-		if (chg->idtp_psy) {
-			val.intval = enable;
-			rc = power_supply_set_property(chg->idtp_psy, POWER_SUPPLY_PROP_PIN_ENABLED, &val);
-			if (rc < 0) {
-				smblib_err(chg, "Could not set charger control limit =%d\n", rc);
-				return;
-			}
+	if (chg->idtp_psy) {
+		val.intval = enable;
+		rc = power_supply_set_property(chg->idtp_psy, POWER_SUPPLY_PROP_PIN_ENABLED, &val);
+		if (rc < 0) {
+			smblib_err(chg, "Could not set charger control limit =%d\n", rc);
+			return;
 		}
+	}
 }
 
 #define PL_DELAY_MS			30000
@@ -4016,11 +4135,6 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 	if (vbus_rising) {
 		vote(chg->awake_votable, CHG_AWAKE_VOTER, true, 0);
 
-		if (smblib_get_prop_dfp_mode(chg) != POWER_SUPPLY_TYPEC_NONE) {
-			chg->fake_usb_insertion = true;
-			return;
-		}
-
 		rc = smblib_request_dpdm(chg, true);
 		if (rc < 0)
 			smblib_err(chg, "Couldn't to enable DPDM rc=%d\n", rc);
@@ -4041,9 +4155,15 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 		schedule_delayed_work(&chg->pl_enable_work,
 					msecs_to_jiffies(PL_DELAY_MS));
 
+		/*
+		schedule_delayed_work(&chg->monitor_low_temp_work,
+				msecs_to_jiffies(CHG_MONITOR_WORK_DELAY_MS));
 
-		schedule_delayed_work(&chg->typec_reenable_work,
-											msecs_to_jiffies(300));
+		schedule_delayed_work(&chg->cc_float_charge_work,
+					msecs_to_jiffies(CC_FLOAT_WORK_START_DELAY_MS));
+		*/
+
+		schedule_delayed_work(&chg->typec_reenable_work, msecs_to_jiffies(300));
 
 		/* vbus rising when APSD was disabled and PD_ACTIVE = 0 */
 		if (get_effective_result(chg->apsd_disable_votable) &&
@@ -4052,10 +4172,7 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 	} else {
 		cancel_delayed_work_sync(&chg->typec_reenable_work);
 
-		if (chg->fake_usb_insertion) {
-			chg->fake_usb_insertion = false;
-			return;
-		}
+		cancel_delayed_work_sync(&chg->charger_type_recheck);
 
 		if (chg->wa_flags & BOOST_BACK_WA) {
 			data = chg->irq_info[SWITCH_POWER_OK_IRQ].irq_data;
@@ -4069,7 +4186,6 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 						false, 0);
 			}
 		}
-
 		rc = smblib_request_dpdm(chg, false);
 		if (rc < 0)
 			smblib_err(chg, "Couldn't disable DPDM rc=%d\n", rc);
@@ -4079,6 +4195,9 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 			chg->real_charger_type = POWER_SUPPLY_TYPE_UNKNOWN;
 			chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
 		}
+		chg->recheck_charger = false;
+		chg->legacy = false;
+		chg->precheck_charger_type = POWER_SUPPLY_TYPE_UNKNOWN;
 		vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
 	}
 
@@ -4340,10 +4459,13 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 		 * limit ICL to 100mA, the USB driver will enumerate to check
 		 * if this is a SDP and appropriately set the current
 		 */
-		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 100000);
+		if (chg->recheck_charger)
+			vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 1000000);
+		else
+			vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 100000);
 		break;
 	case POWER_SUPPLY_TYPE_USB_HVDCP:
-		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 100000);
+		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 1500000);
 		break;
 	case POWER_SUPPLY_TYPE_USB_HVDCP_3:
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 3000000);
@@ -4353,6 +4475,7 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 500000);
 		break;
 	}
+
 }
 
 static void smblib_notify_extcon_props(struct smb_charger *chg, int id)
@@ -4405,6 +4528,12 @@ static void smblib_handle_apsd_done(struct smb_charger *chg, bool rising)
 							CC_FLOAT_VOTER)) {
 		if (chg->typec_mode != POWER_SUPPLY_TYPEC_NONE)
 			vote(chg->usb_icl_votable, CC_FLOAT_VOTER, false, 0);
+	}
+
+	if (is_client_vote_enabled(chg->usb_icl_votable,
+							USB_PSY_VOTER)) {
+		if (chg->real_charger_type != POWER_SUPPLY_TYPE_USB)
+			vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
 	}
 
 	if (!chg->typec_legacy_valid)
@@ -4480,15 +4609,12 @@ irqreturn_t smblib_handle_usb_source_change(int irq, void *data)
 	int rc = 0;
 	u8 stat;
 
-	if (chg->fake_usb_insertion)
-		return IRQ_HANDLED;
-
 	rc = smblib_read(chg, APSD_STATUS_REG, &stat);
 	if (rc < 0) {
 		smblib_err(chg, "Couldn't read APSD_STATUS rc=%d\n", rc);
 		return IRQ_HANDLED;
 	}
-	smblib_dbg(chg, PR_REGISTER, "APSD_STATUS = 0x%02x\n", stat);
+	smblib_dbg(chg, PR_REGISTER, "Start: APSD_STATUS = 0x%02x\n", stat);
 
 	if ((chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB)
 			&& (stat & APSD_DTC_STATUS_DONE_BIT)
@@ -4530,7 +4656,7 @@ irqreturn_t smblib_handle_usb_source_change(int irq, void *data)
 		smblib_err(chg, "Couldn't read APSD_STATUS rc=%d\n", rc);
 		return IRQ_HANDLED;
 	}
-	smblib_dbg(chg, PR_REGISTER, "APSD_STATUS = 0x%02x\n", stat);
+	smblib_dbg(chg, PR_REGISTER, "End: APSD_STATUS = 0x%02x\n", stat);
 
 	return IRQ_HANDLED;
 }
@@ -4755,6 +4881,7 @@ static void smblib_handle_typec_removal(struct smb_charger *chg)
 	cancel_delayed_work_sync(&chg->pl_enable_work);
 	cancel_delayed_work_sync(&chg->hvdcp_detect_work);
 
+
 	/* reset input current limit voters */
 	vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 100000);
 	vote(chg->usb_icl_votable, PD_VOTER, false, 0);
@@ -4799,6 +4926,7 @@ static void smblib_handle_typec_removal(struct smb_charger *chg)
 	chg->typec_legacy_valid = false;
 	chg->cc_float_detected = false;
 	chg->float_rerun_apsd = false;
+
 
 	/* write back the default FLOAT charger configuration */
 	rc = smblib_masked_write(chg, USBIN_OPTIONS_2_CFG_REG,
@@ -4913,6 +5041,7 @@ static void smblib_handle_typec_insertion(struct smb_charger *chg)
 			smblib_err(chg, "Couldn't to enable DPDM rc=%d\n", rc);
 		typec_sink_removal(chg);
 	}
+
 }
 
 static void smblib_handle_rp_change(struct smb_charger *chg, int typec_mode)
@@ -4977,8 +5106,10 @@ static void smblib_handle_typec_cc_state_change(struct smb_charger *chg)
 		if (chg->typec_mode != POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER)
 			smblib_wireless_set_enable(chg, false);
 		smblib_handle_typec_insertion(chg);
+		schedule_delayed_work(&chg->charger_type_recheck, msecs_to_jiffies(20000));
 	} else if (chg->typec_present &&
 				chg->typec_mode == POWER_SUPPLY_TYPEC_NONE) {
+		cancel_delayed_work_sync(&chg->charger_type_recheck);
 		chg->typec_present = false;
 		smblib_dbg(chg, PR_MISC, "TypeC removal\n");
 		smblib_handle_typec_removal(chg);
@@ -5019,7 +5150,8 @@ static void smblib_dc_input_current_work(struct work_struct *work)
 	if (IS_ERR(chg->iio.dcin_i_chan))
 		return;
 
-	while (retry) {
+	while(retry)
+	{
 		rc = iio_read_channel_processed(chg->iio.dcin_i_chan, &ret);
 		if (rc > 0)
 			break;
@@ -5122,7 +5254,8 @@ irqreturn_t smblib_handle_dc_plugin(int irq, void *data)
 #endif
 	schedule_delayed_work(&chg->dc_input_current_work,
 			msecs_to_jiffies(2000));
-	} else if (chg->idtp_psy) {
+	}
+	else if (chg->idtp_psy) {
 		cancel_delayed_work_sync(&chg->dc_input_current_work);
 		val.intval = false;
 		power_supply_set_property(chg->idtp_psy,
@@ -5135,6 +5268,7 @@ irqreturn_t smblib_handle_dc_plugin(int irq, void *data)
 		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
 		vote(chg->dc_icl_votable, DCIN_ADAPTER_VOTER, true, 100000);
 		smblib_dbg(chg, PR_OEM, "DC plugout: %d\n", stat);
+
 	}
 
 	power_supply_changed(chg->dc_psy);
@@ -5163,7 +5297,7 @@ irqreturn_t smblib_handle_high_duty_cycle(int irq, void *data)
 static void smblib_bb_removal_work(struct work_struct *work)
 {
 	struct smb_charger *chg = container_of(work, struct smb_charger,
-						bb_removal_work.work);
+                                               bb_removal_work.work);
 
 	vote(chg->usb_icl_votable, BOOST_BACK_VOTER, false, 0);
 	vote(chg->awake_votable, BOOST_BACK_VOTER, false, 0);
@@ -5303,7 +5437,6 @@ static void smblib_uusb_otg_work(struct work_struct *work)
 out:
 	vote(chg->awake_votable, OTG_DELAY_VOTER, false, 0);
 }
-
 
 static void smblib_hvdcp_detect_work(struct work_struct *work)
 {
@@ -5655,6 +5788,7 @@ static void smblib_legacy_detection_work(struct work_struct *work)
 	vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, false, 0);
 	legacy = stat & TYPEC_LEGACY_CABLE_STATUS_BIT;
 	rp_high = chg->typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH;
+	chg->legacy = legacy;
 	smblib_dbg(chg, PR_MISC, "legacy workaround done legacy = %d rp_high = %d\n",
 			legacy, rp_high);
 	if (!legacy || !rp_high)
@@ -5665,6 +5799,66 @@ unlock:
 	chg->typec_en_dis_active = 0;
 	smblib_usb_typec_change(chg);
 	mutex_unlock(&chg->lock);
+}
+#define TYPE_RECHECK_TIME_20S	20000
+#define TYPE_RECHECK_TIME_5S	5000
+#define TYPE_RECHECK_COUNT	3
+
+static void smblib_charger_type_recheck(struct work_struct *work)
+{
+	struct smb_charger *chg = container_of(work, struct smb_charger,
+			charger_type_recheck.work);
+	int rc, hvdcp;
+	u8 stat;
+	int recheck_time = TYPE_RECHECK_TIME_5S;
+	static int last_charger_type, check_count;
+
+	smblib_dbg(chg, PR_OEM, "typec_mode:%d,last:%d:real:%d\n",
+			chg->typec_mode, last_charger_type, chg->real_charger_type);
+
+	if (last_charger_type != chg->real_charger_type)
+		check_count--;
+	last_charger_type = chg->real_charger_type;
+
+	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3 ||
+			chg->pd_active || (check_count >= TYPE_RECHECK_COUNT)) {
+		smblib_dbg(chg, PR_MISC, "hvdcp detect or check_count = %d break\n",
+				check_count);
+		check_count = 0;
+		return;
+	}
+
+	if (smblib_get_prop_dfp_mode(chg) != POWER_SUPPLY_TYPEC_NONE
+			|| chg->typec_mode == POWER_SUPPLY_TYPEC_NONE) {
+		goto check_next;
+	}
+
+	if (!chg->recheck_charger)
+		chg->precheck_charger_type = chg->real_charger_type;
+	chg->recheck_charger = true;
+
+	/* disable APSD CC trigger since CC is attached */
+	rc = smblib_masked_write(chg, TYPE_C_CFG_REG, APSD_START_ON_CC_BIT, 0);
+	if (rc < 0)
+		smblib_err(chg, "Couldn't disable APSD_START_ON_CC rc=%d\n", rc);
+
+	rc = smblib_read(chg, APSD_STATUS_REG, &stat);
+	if (rc < 0) {
+		smblib_err(chg, "Couldn't read APSD status rc=%d\n", rc);
+		return;
+	}
+	hvdcp = stat & QC_CHARGER_BIT;
+	smblib_dbg(chg, PR_OEM, "hvdcp:%d chg->legacy:%d check_count:%d\n",
+			hvdcp, chg->legacy, check_count);
+	if (hvdcp && !chg->legacy) {
+		recheck_time = TYPE_RECHECK_TIME_20S;
+		__smblib_set_prop_pd_active(chg, 0);
+	} else
+		smblib_rerun_apsd_if_required(chg);
+
+check_next:
+	check_count++;
+	schedule_delayed_work(&chg->charger_type_recheck, msecs_to_jiffies(recheck_time));
 }
 
 static void smblib_typec_reenable_work(struct work_struct *work)
@@ -5941,6 +6135,7 @@ int smblib_init(struct smb_charger *chg)
 	INIT_DELAYED_WORK(&chg->monitor_low_temp_work, smblib_monitor_low_temp_work);
 	INIT_DELAYED_WORK(&chg->cc_float_charge_work, smblib_cc_float_charge_work);
 	INIT_DELAYED_WORK(&chg->typec_reenable_work, smblib_typec_reenable_work);
+	INIT_DELAYED_WORK(&chg->charger_type_recheck, smblib_charger_type_recheck);
 	INIT_DELAYED_WORK(&chg->dc_input_current_work, smblib_dc_input_current_work);
 
 	chg->fake_capacity = -EINVAL;
@@ -5956,15 +6151,6 @@ int smblib_init(struct smb_charger *chg)
 			return rc;
 		}
 
-		/* Xiaomi: moved to FG driver
-		rc = qcom_step_chg_init(chg->dev, chg->step_chg_enabled,
-						chg->sw_jeita_enabled);
-		if (rc < 0) {
-			smblib_err(chg, "Couldn't init qcom_step_chg_init rc=%d\n",
-				rc);
-			return rc;
-		}
-		*/
 
 		rc = smblib_create_votables(chg);
 		if (rc < 0) {
@@ -6020,6 +6206,7 @@ int smblib_deinit(struct smb_charger *chg)
 		cancel_delayed_work_sync(&chg->uusb_otg_work);
 		cancel_delayed_work_sync(&chg->bb_removal_work);
 		cancel_delayed_work_sync(&chg->typec_reenable_work);
+		cancel_delayed_work_sync(&chg->charger_type_recheck);
 		cancel_delayed_work_sync(&chg->dc_input_current_work);
 
 		power_supply_unreg_notifier(&chg->nb);
@@ -6033,7 +6220,6 @@ int smblib_deinit(struct smb_charger *chg)
 		smblib_err(chg, "Unsupported mode %d\n", chg->mode);
 		return -EINVAL;
 	}
-
 	smblib_iio_deinit(chg);
 
 	return 0;

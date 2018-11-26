@@ -1,5 +1,4 @@
 /* Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
- * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -636,7 +635,7 @@ enum {
 #define USBIN_LOAD_CFG_REG			(USBIN_BASE + 0x65)
 #define USBIN_OV_CH_LOAD_OPTION_BIT		BIT(7)
 #define ICL_OVERRIDE_AFTER_APSD_BIT		BIT(4)
-#define USBIN_COLLAPSE_SEL_MASK			GENMASK(1, 0)
+#define USBIN_COLLAPSE_SEL_MASK                 GENMASK(1, 0)
 
 #define USBIN_ICL_OPTIONS_REG			(USBIN_BASE + 0x66)
 #define CFG_USB3P0_SEL_BIT			BIT(2)

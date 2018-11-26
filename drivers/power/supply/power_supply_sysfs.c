@@ -148,11 +148,11 @@ static ssize_t power_supply_show_property(struct device *dev,
 	else if (off == POWER_SUPPLY_PROP_WIRELESS_VERSION)
 		return scnprintf(buf, PAGE_SIZE, "0x%x\n",
 				value.intval);
-	else if (off == POWER_SUPPLY_PROP_WIRELESS_WAKELOCK)
-		return scnprintf(buf, PAGE_SIZE, "%d\n",
-				value.intval);
 	else if (off == POWER_SUPPLY_PROP_SIGNAL_STRENGTH)
 		return scnprintf(buf, PAGE_SIZE, "%d\n",
+				value.intval);
+	else if (off == POWER_SUPPLY_PROP_TYPE_RECHECK)
+		return scnprintf(buf, PAGE_SIZE, "0x%x\n",
 				value.intval);
 	else
 		return scnprintf(buf, PAGE_SIZE, "%d\n",
@@ -274,6 +274,8 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(temp_hot),
 	POWER_SUPPLY_ATTR(system_temp_level),
 	POWER_SUPPLY_ATTR(resistance),
+	POWER_SUPPLY_ATTR(esr),
+	POWER_SUPPLY_ATTR(rslow),
 	POWER_SUPPLY_ATTR(resistance_capacitive),
 	POWER_SUPPLY_ATTR(resistance_id),
 	POWER_SUPPLY_ATTR(resistance_now),
@@ -333,9 +335,9 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(dc_thermal_levels),
 	POWER_SUPPLY_ATTR(connector_type),
 	POWER_SUPPLY_ATTR(rerun_apsd),
+	POWER_SUPPLY_ATTR(type_recheck),
 	POWER_SUPPLY_ATTR(wireless_version),
 	POWER_SUPPLY_ATTR(signal_strength),
-	POWER_SUPPLY_ATTR(wireless_wakelock),
 	POWER_SUPPLY_ATTR(parallel_batfet_mode),
 	POWER_SUPPLY_ATTR(min_icl),
 	POWER_SUPPLY_ATTR(moisture_detected),
