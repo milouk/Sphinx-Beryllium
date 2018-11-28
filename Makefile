@@ -392,7 +392,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wno-strict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
-		   -Wno-format-security\
+		   -Wno-format-security -ffast-math\
 		   -std=gnu89
 #GCC 5.x.x
 KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
@@ -676,9 +676,9 @@ KBUILD_CFLAGS	+= $(call cc-option,-Oz,-Os)
 KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
 else
 ifdef CONFIG_PROFILE_ALL_BRANCHES
-KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
+KBUILD_CFLAGS	+= -O3 $(call cc-disable-warning,maybe-uninitialized,)
 else
-KBUILD_CFLAGS   += -O2
+KBUILD_CFLAGS   += -O3
 endif
 endif
 
@@ -763,10 +763,10 @@ KBUILD_AFLAGS += $(call cc-option, -no-integrated-as)
 KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
 		 -Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
 		 -Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
-		 -Wno-undefined-optimized -fno-integrated-as -Wno-compare-distinct-pointer-types\
-         -Wno-gnu-variable-sized-type-not-at-end -Wno-gnu-folding-constant -Wno-tautological-compare\
-         -Wno-address-of-packed-member -Wno-tautological-pointer-compare -Wno-gnu-designator\
-         -Wno-pointer-bool-conversion -Wno-tautological-constant-out-of-range-compare
+		 -Wno-undefined-optimized -fno-integrated-as -Wno-gnu-variable-sized-type-not-at-end\
+		 -Wno-gnu-folding-constant -Wno-tautological-compare -Wno-address-of-packed-member\
+		 -Wno-tautological-pointer-compare -Wno-gnu-designator -Wno-pointer-bool-conversion\
+		 -Wno-tautological-constant-out-of-range-compare
 else
 
 # These warnings generated too much noise in a regular build.
