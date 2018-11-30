@@ -33,8 +33,7 @@ static void cam_node_print_ctx_state(
 
 		spin_lock(&ctx->lock);
 		CAM_INFO(CAM_CORE,
-			"[%s][%d] : state=%d, refcount=%d, active_req_list=%d, "
-			"pending_req_list=%d, wait_req_list=%d, free_req_list=%d",
+			"[%s][%d] : state=%d, refcount=%d, active_req_list=%d, pending_req_list=%d, wait_req_list=%d, free_req_list=%d",
 			ctx->dev_name ? ctx->dev_name : "null",
 			i, ctx->state,
 			atomic_read(&(ctx->refcount.refcount)),
@@ -158,10 +157,7 @@ static int __cam_node_handle_acquire_dev(struct cam_node *node,
 		CAM_ERR(CAM_CORE, "No free ctx in free list node %s",
 			node->name);
 		cam_node_print_ctx_state(node);
-
-
 		cam_node_recycle_ctxt_from_acquired_list(node);
-
 
 		ctx = cam_node_get_ctxt_from_free_list(node);
 		if (!ctx) {
@@ -179,7 +175,7 @@ static int __cam_node_handle_acquire_dev(struct cam_node *node,
 
 	ctx->ctx_released = false;
 
-	CAM_INFO(CAM_CORE, "[%s] Acquire ctx_id %d",
+	CAM_DBG(CAM_CORE, "[%s] Acquire ctx_id %d",
 		node->name, ctx->ctx_id);
 
 	return 0;
@@ -356,7 +352,7 @@ static int __cam_node_handle_release_dev(struct cam_node *node,
 		CAM_ERR(CAM_CORE, "destroy device handle is failed node %s",
 			node->name);
 
-	CAM_INFO(CAM_CORE, "[%s] Release ctx_id=%d, refcount=%d",
+	CAM_DBG(CAM_CORE, "[%s] Release ctx_id=%d, refcount=%d",
 		node->name, ctx->ctx_id,
 		atomic_read(&(ctx->refcount.refcount)));
 
@@ -476,14 +472,16 @@ int cam_node_deinit(struct cam_node *node)
 int cam_node_shutdown(struct cam_node *node)
 {
 	int i = 0;
+	int rc = 0;
 
 	if (!node)
 		return -EINVAL;
 
 	for (i = 0; i < node->ctx_size; i++) {
-		if (node->ctx_list[i].dev_hdl >= 0) {
-			cam_context_shutdown(&(node->ctx_list[i]));
-			cam_destroy_device_hdl(node->ctx_list[i].dev_hdl);
+		if (node->ctx_list[i].dev_hdl > 0) {
+			rc = cam_context_shutdown(&(node->ctx_list[i]));
+			if (rc)
+				continue;
 			cam_context_putref(&(node->ctx_list[i]));
 		}
 	}
