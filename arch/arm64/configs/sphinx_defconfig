@@ -685,6 +685,11 @@ CONFIG_ATH9K_PCI=y
 CONFIG_ATH9K_HTC=y
 
 #
+#Sound Control
+#
+CONFIG_SOUND_CONTROL=y
+
+#
 #I/O Schedulers
 #
 CONFIG_IOSCHED_FIOPS=y
