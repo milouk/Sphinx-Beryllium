@@ -665,81 +665,6 @@ static int fg_get_battery_temp(struct fg_chip *chip, int *val)
 	return 0;
 }
 
-static int fg_set_rslow(struct fg_chip *chip)
-{
-	static int count;
-	static int init_rslow;
-	int i, rc, rslow_uohms;
-
-	if (!chip)
-		return -EINVAL;
-
-	rc = fg_get_sram_prop(chip, FG_SRAM_RSLOW, &rslow_uohms);
-	if (rc < 0) {
-		pr_err("failed to get Rslow, rc=%d\n", rc);
-		return rc;
-	}
-
-	if (!init_rslow) {
-		for (i = 0; i < RSLOW_ARRAY_LEN; i++) {
-			chip->rslow_arr[i] = rslow_uohms;
-		}
-		init_rslow = true;
-		return 0;
-	}
-
-	if (count >= RSLOW_ARRAY_LEN)
-		count = 0;
-
-	chip->rslow_arr[count] = rslow_uohms;
-	count++;
-
-	return 0;
-}
-
-static int fg_get_rslow(struct fg_chip *chip)
-{
-	int i, rslow = 0;
-
-	if (!chip)
-		return -EINVAL;
-
-	for (i = 0; i < RSLOW_ARRAY_LEN; i++) {
-		rslow += chip->rslow_arr[i];
-	}
-
-	rslow = rslow / RSLOW_ARRAY_LEN;
-
-	return rslow;
-}
-
-static int fg_get_battery_esr(struct fg_chip *chip, int *val)
-{
-	int rc, esr_uohms;
-
-	rc = fg_get_sram_prop(chip, FG_SRAM_ESR, &esr_uohms);
-	if (rc < 0) {
-		pr_err("failed to get ESR, rc=%d\n", rc);
-		return rc;
-	}
-	*val = esr_uohms;
-
-	return esr_uohms;
-}
-static int fg_get_battery_rslow(struct fg_chip *chip, int *val)
-{
-	int rc, rslow_uohms;
-
-	rc = fg_get_sram_prop(chip, FG_SRAM_RSLOW, &rslow_uohms);
-	if (rc < 0) {
-		pr_err("failed to get Rslow, rc=%d\n", rc);
-		return rc;
-	}
-	*val = rslow_uohms;
-
-	return rslow_uohms;
-}
-
 static int fg_get_battery_resistance(struct fg_chip *chip, int *val)
 {
 	int rc, esr_uohms, rslow_uohms;
@@ -750,7 +675,11 @@ static int fg_get_battery_resistance(struct fg_chip *chip, int *val)
 		return rc;
 	}
 
-	rslow_uohms = fg_get_rslow(chip);
+	rc = fg_get_sram_prop(chip, FG_SRAM_RSLOW, &rslow_uohms);
+	if (rc < 0) {
+		pr_err("failed to get Rslow, rc=%d\n", rc);
+		return rc;
+	}
 
 	*val = esr_uohms + rslow_uohms;
 	return 0;
@@ -856,7 +785,7 @@ static int fg_get_msoc(struct fg_chip *chip, int *msoc)
 	 * of the values 1-254 will be scaled to 1-99. DIV_ROUND_UP will not
 	 * be suitable here as it rounds up any value higher than 252 to 100.
 	 */
-	if ((*msoc >= FULL_SOC_REPORT_THR - 2)
+	if ((*msoc >= FULL_SOC_REPORT_THR)
 			&& (*msoc < FULL_SOC_RAW) && chip->report_full) {
 		*msoc = DIV_ROUND_CLOSEST(*msoc * FULL_CAPACITY, FULL_SOC_RAW) + 1;
 		if (*msoc >= FULL_CAPACITY)
@@ -865,12 +794,9 @@ static int fg_get_msoc(struct fg_chip *chip, int *msoc)
 		*msoc = 100;
 	else if (*msoc == 0)
 		*msoc = 0;
-	else if (*msoc >= FULL_SOC_REPORT_THR - 4 && *msoc <= FULL_SOC_REPORT_THR - 3 && chip->report_full) {
-		*msoc = DIV_ROUND_CLOSEST(*msoc * FULL_CAPACITY, FULL_SOC_RAW);
-	} else {
+	else
 		*msoc = DIV_ROUND_CLOSEST((*msoc - 1) * (FULL_CAPACITY - 2),
 				FULL_SOC_RAW - 2) + 1;
-	}
 	return 0;
 }
 
@@ -1255,17 +1181,6 @@ static void fg_notify_charger(struct fg_chip *chip)
 			rc);
 		return;
 	}
-
-    /*
-    prop.intval = chip->bp.fastchg_curr_ma * 1000;
-	rc = power_supply_set_property(chip->batt_psy,
-			POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX, &prop);
-	if (rc < 0) {
-		pr_err("Error in setting constant_charge_current_max property on batt_psy, rc=%d\n",
-			rc);
-		return;
-	}
-    */
 
 	fg_dbg(chip, FG_STATUS, "Notified charger on float voltage and FCC\n");
 }
@@ -1790,7 +1705,7 @@ static int fg_adjust_ki_coeff_dischg(struct fg_chip *chip)
 		return rc;
 	}
 
-	fg_dbg(chip, FG_POWER_SUPPLY, "Wrote ki_coeff_med %d ki_coeff_hi %d\n",
+	fg_dbg(chip, FG_STATUS, "Wrote ki_coeff_med %d ki_coeff_hi %d\n",
 		ki_coeff_med, ki_coeff_hi);
 	return 0;
 }
@@ -1929,7 +1844,7 @@ static int fg_charge_full_update(struct fg_chip *chip)
 	}
 	msoc = DIV_ROUND_CLOSEST(msoc_raw * FULL_CAPACITY, FULL_SOC_RAW);
 
-	fg_dbg(chip, FG_POWER_SUPPLY, "msoc: %d bsoc: %x health: %d status: %d full: %d\n",
+	fg_dbg(chip, FG_STATUS, "msoc: %d bsoc: %x health: %d status: %d full: %d\n",
 		msoc, bsoc, chip->health, chip->charge_status,
 		chip->charge_full);
 	if (chip->charge_done && !chip->charge_full) {
@@ -2616,8 +2531,6 @@ static int fg_inc_store_cycle_ctr(struct fg_chip *chip, int bucket)
 static void fg_cycle_counter_update(struct fg_chip *chip)
 {
 	int rc = 0, bucket, i, batt_soc;
-	union power_supply_propval prop = {0, };
-	int input_suspend = 0;
 
 	if (!chip->cyc_ctr.en)
 		return;
@@ -2635,23 +2548,12 @@ static void fg_cycle_counter_update(struct fg_chip *chip)
 	/* Find out which bucket the SOC falls in */
 	bucket = batt_soc / BUCKET_SOC_PCT;
 
-	if (chip->batt_psy)
-	{
-		rc = power_supply_get_property(chip->batt_psy, POWER_SUPPLY_PROP_INPUT_SUSPEND,
-				&prop);
-		if (rc < 0) {
-			pr_err("Error in getting charging status, rc=%d\n", rc);
-			goto out;
-		}
-		input_suspend = prop.intval;
-	}
-
 	if (chip->charge_status == POWER_SUPPLY_STATUS_CHARGING) {
 		if (!chip->cyc_ctr.started[bucket]) {
 			chip->cyc_ctr.started[bucket] = true;
 			chip->cyc_ctr.last_soc[bucket] = batt_soc;
 		}
-	} else if (chip->charge_done || !is_input_present(chip) || input_suspend) {
+	} else if (chip->charge_done || !is_input_present(chip)) {
 		for (i = 0; i < BUCKET_COUNT; i++) {
 			if (chip->cyc_ctr.started[i] &&
 				batt_soc > chip->cyc_ctr.last_soc[i] + 2) {
@@ -2760,7 +2662,7 @@ static void status_change_work(struct work_struct *work)
 		rc = fg_get_msoc_raw(chip, &msoc);
 		if (rc < 0)
 			pr_err("Error in getting msoc, rc=%d\n", rc);
-		if (msoc < FULL_SOC_REPORT_THR - 4)
+		if (msoc < FULL_SOC_REPORT_THR)
 			chip->report_full = false;
 	}
 	fg_cycle_counter_update(chip);
@@ -3047,8 +2949,8 @@ static void profile_load_work(struct work_struct *work)
 			chip->batt_id_ohms / 1000, rc);
 		goto out;
 	}
-        /*xiaomi move qcom_step_chg_init to fg driver*/
-        qcom_step_chg_init(chip->dev, 0 , 1);
+		/*xiaomi move qcom_step_chg_init to fg driver*/
+		qcom_step_chg_init(chip->dev, 0 , 1);
 
 	if (!chip->profile_available)
 		goto out;
@@ -3835,12 +3737,6 @@ static int fg_psy_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_RESISTANCE:
 		rc = fg_get_battery_resistance(chip, &pval->intval);
 		break;
-	case POWER_SUPPLY_PROP_ESR:
-		rc = fg_get_battery_esr(chip, &pval->intval);
-		break;
-	case POWER_SUPPLY_PROP_RSLOW:
-		rc = fg_get_battery_rslow(chip, &pval->intval);
-		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
 		rc = fg_get_sram_prop(chip, FG_SRAM_OCV, &pval->intval);
 		break;
@@ -4094,8 +3990,6 @@ static enum power_supply_property fg_psy_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_RESISTANCE_ID,
 	POWER_SUPPLY_PROP_RESISTANCE,
-	POWER_SUPPLY_PROP_ESR,
-	POWER_SUPPLY_PROP_RSLOW,
 	POWER_SUPPLY_PROP_BATTERY_TYPE,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
@@ -5404,11 +5298,9 @@ static void soc_work_fn(struct work_struct *work)
 			temp,
 			cycle_count,
 			msoc);
-	fg_dbg(chip, FG_POWER_SUPPLY, "adjust_soc: 000: %02x, %02x, %02x, %02x\n", buf_top[0], buf_top[1], buf_top[2], buf_top[3]);
-	fg_dbg(chip, FG_POWER_SUPPLY, "adjust_soc: 019: %02x, %02x, %02x, %02x\n", buf_auto[0], buf_auto[1], buf_auto[2], buf_auto[3]);
-	fg_dbg(chip, FG_POWER_SUPPLY, "adjust_soc: 079: %02x, %02x, %02x, %02x\n", buf_profile[0], buf_profile[1], buf_profile[2], buf_profile[3]);
-
-	fg_set_rslow(chip);
+	pr_info("adjust_soc: 000: %02x, %02x, %02x, %02x\n", buf_top[0], buf_top[1], buf_top[2], buf_top[3]);
+	pr_info("adjust_soc: 019: %02x, %02x, %02x, %02x\n", buf_auto[0], buf_auto[1], buf_auto[2], buf_auto[3]);
+	pr_info("adjust_soc: 079: %02x, %02x, %02x, %02x\n", buf_profile[0], buf_profile[1], buf_profile[2], buf_profile[3]);
 
 	if (temp < 450 && chip->last_batt_temp >= 450) {
 		/* follow the way that fg_notifier_cb use wake lock */

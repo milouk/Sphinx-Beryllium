@@ -69,8 +69,6 @@
 #define MAX_LINE_LENGTH			(ADDR_LEN + (ITEMS_PER_LINE *	\
 					CHARS_PER_ITEM) + 1)		\
 
-#define RSLOW_ARRAY_LEN			6
-
 #define NUM_PARTITIONS			3
 #define FG_SRAM_ADDRESS_MAX		255
 #define FG_SRAM_LEN			504
@@ -461,6 +459,7 @@ struct fg_chip {
 	bool			profile_loaded;
 	bool			battery_missing;
 	bool			fg_restarting;
+	bool			empty_restart_fg;
 	bool			charge_full;
 	bool			recharge_soc_adjusted;
 	bool			ki_coeff_dischg_en;
@@ -472,9 +471,7 @@ struct fg_chip {
 	bool			report_full;
 	bool			use_dma;
 	bool			qnovo_enable;
-	bool			empty_restart_fg;
 	bool			suspended;
-	int			rslow_arr[RSLOW_ARRAY_LEN];
 	struct completion	soc_update;
 	struct completion	soc_ready;
 	struct delayed_work	profile_load_work;

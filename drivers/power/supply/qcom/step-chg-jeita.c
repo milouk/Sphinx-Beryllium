@@ -20,7 +20,7 @@
 #include <linux/pmic-voter.h>
 #include "step-chg-jeita.h"
 
-#define MAX_STEP_CHG_ENTRIES	5
+#define MAX_STEP_CHG_ENTRIES	4
 #define STEP_CHG_VOTER		"STEP_CHG_VOTER"
 #define JEITA_VOTER		"JEITA_VOTER"
 
@@ -357,12 +357,11 @@ static int get_val(struct range_data *range, int hysteresis, int current_index,
 		}
 
 	if (threshold < range[0].low_threshold) {
-			*new_index = 0;
-			*val = range[*new_index].value;
-	}
-	else if (threshold > range[MAX_STEP_CHG_ENTRIES - 1].low_threshold) {
-			*new_index = MAX_STEP_CHG_ENTRIES - 1;
-			*val = range[*new_index].value;
+		*new_index = 0;
+		*val = range[*new_index].value;
+	} else if (threshold > range[MAX_STEP_CHG_ENTRIES - 1].low_threshold) {
+		*new_index = MAX_STEP_CHG_ENTRIES - 1;
+		*val = range[*new_index].value;
 	}
 
 	/* if nothing was found, return -ENODATA */

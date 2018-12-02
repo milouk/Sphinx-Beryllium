@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -370,25 +371,6 @@ static int smb2_parse_dt(struct smb2 *chip)
 		}
 	}
 
-	if (of_find_property(node, "qcom,thermal-mitigation-pd-base", &byte_len)) {
-		chg->thermal_mitigation_pd_base = devm_kzalloc(chg->dev, byte_len,
-				GFP_KERNEL);
-
-		if (chg->thermal_mitigation_pd_base == NULL)
-			return -ENOMEM;
-
-		chg->thermal_levels = byte_len / sizeof(u32);
-		rc = of_property_read_u32_array(node,
-				"qcom,thermal-mitigation-pd-base",
-				chg->thermal_mitigation_pd_base,
-				chg->thermal_levels);
-		if (rc < 0) {
-			dev_err(chg->dev,
-					"Couldn't read threm limits rc = %d\n", rc);
-			return rc;
-		}
-	}
-
 #else
 	if (of_find_property(node, "qcom,thermal-mitigation", &byte_len)) {
 		chg->thermal_mitigation = devm_kzalloc(chg->dev, byte_len,
@@ -460,19 +442,6 @@ static int smb2_parse_dt(struct smb2 *chip)
 
 	return 0;
 }
-static int smblib_get_apsd_status(struct smb_charger *chg)
-{
-	int rc = 0;
-	u8 stat = 0;
-
-	rc = smblib_read(chg, APSD_STATUS_REG, &stat);
-	if (rc < 0) {
-		dev_err(chg->dev, "Couldn't read APSD_STATUS rc=%d\n", rc);
-		return -EINVAL;
-	}
-
-	return stat & APSD_DTC_STATUS_DONE_BIT;
-}
 
 /************************
  * USB PSY REGISTRATION *
@@ -504,7 +473,6 @@ static enum power_supply_property smb2_usb_props[] = {
 	POWER_SUPPLY_PROP_SDP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_CONNECTOR_TYPE,
 	POWER_SUPPLY_PROP_RERUN_APSD,
-	POWER_SUPPLY_PROP_TYPE_RECHECK,
 	POWER_SUPPLY_PROP_MOISTURE_DETECTED,
 };
 
@@ -628,12 +596,6 @@ static int smb2_usb_get_prop(struct power_supply *psy,
 		val->intval = get_client_vote(chg->disable_power_role_switch,
 					      MOISTURE_VOTER);
 		break;
-	case POWER_SUPPLY_PROP_TYPE_RECHECK:
-		rc = smblib_get_prop_type_recheck(chg, val);
-		break;
-	case POWER_SUPPLY_PROP_RERUN_APSD:
-		val->intval = smblib_get_apsd_status(chg);
-		break;
 	default:
 		pr_err("get prop %d is not supported in usb\n", psp);
 		rc = -EINVAL;
@@ -706,9 +668,6 @@ static int smb2_usb_set_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_RERUN_APSD:
 		rc = smblib_set_prop_rerun_apsd(chg, val);
-		break;
-	case POWER_SUPPLY_PROP_TYPE_RECHECK:
-		rc = smblib_set_prop_type_recheck(chg, val);
 		break;
 	default:
 		pr_err("set prop %d is not supported\n", psp);
@@ -1139,6 +1098,7 @@ static int smb2_get_prop_wireless_signal(struct smb_charger *chg,
 static enum power_supply_property smb2_wireless_props[] = {
 	POWER_SUPPLY_PROP_WIRELESS_VERSION,
 	POWER_SUPPLY_PROP_SIGNAL_STRENGTH,
+	POWER_SUPPLY_PROP_WIRELESS_WAKELOCK,
 };
 
 static int smb2_wireless_set_prop(struct power_supply *psy,
@@ -1152,6 +1112,9 @@ static int smb2_wireless_set_prop(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_WIRELESS_VERSION:
 		dev_info(chg->dev, "set version=%d\n", val->intval);
+		break;
+	case POWER_SUPPLY_PROP_WIRELESS_WAKELOCK:
+		rc = smblib_set_prop_wireless_wakelock(chg, val);
 		break;
 	default:
 		return -EINVAL;
@@ -1174,6 +1137,9 @@ static int smb2_wireless_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_SIGNAL_STRENGTH:
 		smb2_get_prop_wireless_signal(chg, val);
+		break;
+	case POWER_SUPPLY_PROP_WIRELESS_WAKELOCK:
+		val->intval = 1;
 		break;
 	default:
 		return -EINVAL;
@@ -1951,16 +1917,6 @@ static int smb2_init_hw(struct smb2 *chip)
 			"Couldn't configure QC3.0 to 6.6V rc=%d\n", rc);
 		return rc;
 	}
-/*
-	rc = smblib_masked_write(chg, USBIN_ADAPTER_ALLOW_CFG_REG,
-				 USBIN_ADAPTER_ALLOW_MASK,
-				 USBIN_ADAPTER_ALLOW_5V_TO_9V);
-	if (rc < 0) {
-		dev_err(chg->dev,
-			"Couldn't configure QC to 9V rc=%d\n", rc);
-		return rc;
-	}
-*/
 
 	/*
 	 * AICL configuration:
@@ -1968,8 +1924,7 @@ static int smb2_init_hw(struct smb2 *chip)
 	 */
 	rc = smblib_masked_write(chg, USBIN_AICL_OPTIONS_CFG_REG,
 			USBIN_AICL_START_AT_MAX_BIT
-				| USBIN_AICL_ADC_EN_BIT
-				| USBIN_AICL_RERUN_EN_BIT, USBIN_AICL_RERUN_EN_BIT);
+				| USBIN_AICL_ADC_EN_BIT, 0);
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't configure AICL rc=%d\n", rc);
 		return rc;
@@ -2063,7 +2018,7 @@ static int smb2_init_hw(struct smb2 *chip)
 	/* set usbin collapse timer*/
 	rc = smblib_masked_write(chg, USBIN_LOAD_CFG_REG,
 				 USBIN_COLLAPSE_SEL_MASK,
-				0x1);
+				USBIN_COLLAPSE_SEL_MASK);
 	if (rc < 0) {
 		dev_err(chg->dev, "set usbin collapse timer fault rc=%d\n",
 			rc);
@@ -2502,7 +2457,6 @@ static struct smb_irq_info smb2_irqs[] = {
 	[SWITCH_POWER_OK_IRQ] = {
 		.name		= "switcher-power-ok",
 		.handler	= smblib_handle_switcher_power_ok,
-		.wake		= true,
 		.storm_data	= {true, 1000, 8},
 	},
 };

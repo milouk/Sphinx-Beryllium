@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -343,7 +344,6 @@ struct smb_charger {
 	struct delayed_work     monitor_low_temp_work;
 	struct delayed_work	cc_float_charge_work;
 	struct delayed_work	typec_reenable_work;
-	struct delayed_work     charger_type_recheck;
 	struct delayed_work	dc_input_current_work;
 
 	/* cached status */
@@ -361,7 +361,6 @@ struct smb_charger {
 	int			*thermal_mitigation_qc3;
 	int			*thermal_mitigation_qc2;
 	int			*thermal_mitigation_dc;
-	int                     *thermal_mitigation_pd_base;
 #else
 	int			*thermal_mitigation;
 #endif
@@ -379,7 +378,6 @@ struct smb_charger {
 	bool			otg_en;
 	bool			vconn_en;
 	bool			suspend_input_on_debug_batt;
-	bool			legacy;
 	int			otg_attempts;
 	int			vconn_attempts;
 	int			default_icl_ua;
@@ -409,9 +407,9 @@ struct smb_charger {
 	bool			try_sink_active;
 	int			boost_current_ua;
 	int			temp_speed_reading_count;
+	bool			fake_usb_insertion;
 	bool			cc_float_detected;
 	bool			float_rerun_apsd;
-	bool			fake_usb_insertion;
 
 	/* extcon for VBUS / ID notification to USB for uUSB */
 	struct extcon_dev	*extcon;
@@ -427,9 +425,6 @@ struct smb_charger {
 	/* xiaomi config */
 	int			dc_adapter;
 	int			die_health;
-	int                     recheck_charger;
-	int                     precheck_charger_type;
-
 };
 
 int smblib_read(struct smb_charger *chg, u16 addr, u8 *val);
@@ -593,10 +588,6 @@ int smblib_set_prop_ship_mode(struct smb_charger *chg,
 				const union power_supply_propval *val);
 int smblib_set_prop_charge_qnovo_enable(struct smb_charger *chg,
 				const union power_supply_propval *val);
-int smblib_set_prop_type_recheck(struct smb_charger *chg,
-				 const union power_supply_propval *val);
-int smblib_get_prop_type_recheck(struct smb_charger *chg,
-				 union power_supply_propval *val);
 void smblib_suspend_on_debug_battery(struct smb_charger *chg);
 int smblib_rerun_apsd_if_required(struct smb_charger *chg);
 int smblib_get_prop_fcc_delta(struct smb_charger *chg,
@@ -615,6 +606,8 @@ int smblib_set_prop_pr_swap_in_progress(struct smb_charger *chg,
 int smblib_stat_sw_override_cfg(struct smb_charger *chg, bool override);
 void smblib_usb_typec_change(struct smb_charger *chg);
 int smblib_set_prop_rerun_apsd(struct smb_charger *chg,
+				const union power_supply_propval *val);
+int smblib_set_prop_wireless_wakelock(struct smb_charger *chg,
 				const union power_supply_propval *val);
 
 int smblib_init(struct smb_charger *chg);

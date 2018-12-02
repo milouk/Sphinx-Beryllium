@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -96,10 +97,10 @@
 #define DIE_TEMP_UB_HOT_BIT			BIT(1)
 #define DIE_TEMP_LB_HOT_BIT			BIT(0)
 
-#define POWER_PATH_STATUS_REG           (MISC_BASE + 0x0B)
-#define POWER_PATH_MASK                 GENMASK(2, 1)
-#define VALID_INPUT_POWER_SOURCE_STS_BIT    BIT(0)
-#define USE_USBIN_BIT                       BIT(1)
+#define POWER_PATH_STATUS_REG			(MISC_BASE + 0x0B)
+#define POWER_PATH_MASK				GENMASK(2, 1)
+#define VALID_INPUT_POWER_SOURCE_STS_BIT	BIT(0)
+#define USE_USBIN_BIT				BIT(1)
 
 #define MISC_RT_STS_REG				(MISC_BASE + 0x10)
 #define HARD_ILIMIT_RT_STS_BIT			BIT(5)
@@ -518,19 +519,19 @@ static int smb1355_get_prop_batt_charge_type(struct smb1355 *chip,
 
 static int smb1355_get_prop_online(struct smb1355 *chip, union power_supply_propval *val)
 {
-    int rc;
-    u8 stat;
+	int rc;
+	u8 stat;
 
-    rc = smb1355_read(chip, POWER_PATH_STATUS_REG, &stat);
-    if (rc < 0) {
-        pr_err("Couldn't read power path status rc=%d\n", rc);
-        return rc;
-    }
+	rc = smb1355_read(chip, POWER_PATH_STATUS_REG, &stat);
+	if (rc < 0) {
+		pr_err("Couldn't read power path status rc=%d\n", rc);
+		return rc;
+	}
 
-    val->intval = (stat & USE_USBIN_BIT) &&
-                    (stat & VALID_INPUT_POWER_SOURCE_STS_BIT);
+	val->intval = (stat & USE_USBIN_BIT) &&
+					(stat & VALID_INPUT_POWER_SOURCE_STS_BIT);
 
-    return rc;
+	return rc;
 }
 
 static int smb1355_get_prop_connector_health(struct smb1355 *chip)
