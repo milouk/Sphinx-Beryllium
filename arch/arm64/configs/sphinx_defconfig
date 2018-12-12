@@ -690,3 +690,8 @@ CONFIG_WIREGUARD=y
 # Boeffla Wakelocks
 #
 CONFIG_BOEFFLA_WL_BLOCKER=y
+
+#
+#Dynamic Stune Boost
+#
+CONFIG_DYNAMIC_STUNE_BOOST=y
