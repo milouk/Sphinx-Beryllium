@@ -653,3 +653,27 @@ CONFIG_WCD9XXX_CODEC_CORE=y
 CONFIG_WCD_DSP_GLINK=y
 CONFIG_WCD_SPI_AC=y
 CONFIG_MACH_XIAOMI_E10=y
+
+#####################
+#                   #
+#  Sphinx Features  #
+#                   #
+#####################
+
+
+#
+# Local Version
+#
+CONFIG_LOCALVERSION="-Sphinx-"
+# CONFIG_LOCALVERSION_AUTO is not set
+CONFIG_DEFAULT_HOSTNAME="(none)"
+
+
+#
+#Kali Nethunter
+#
+CONFIG_CFG80211=y
+CONFIG_MAC80211=y
+CONFIG_ATH9K=y
+CONFIG_ATH9K_PCI=y
+CONFIG_ATH9K_HTC=y
