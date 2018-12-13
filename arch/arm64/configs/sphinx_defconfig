@@ -743,3 +743,8 @@ CONFIG_CRYPTO_LZ4=y
 # Frandom
 #
 CONFIG_FRANDOM=y
+
+#
+#Sound Control
+#
+CONFIG_SOUND_CONTROL=y
