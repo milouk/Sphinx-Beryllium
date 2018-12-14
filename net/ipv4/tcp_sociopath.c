@@ -28,6 +28,7 @@ static struct tcp_congestion_ops tcp_sociopath = {
   .name		= "sociopath",
 
   .ssthresh	= tcp_sociopath_ssthresh,
+  .undo_cwnd	= tcp_reno_undo_cwnd,
   .cong_avoid	= tcp_sociopath_cong_avoid
 };
 
