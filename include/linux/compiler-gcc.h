@@ -71,18 +71,17 @@
  * -Wunused-function.  This turns out to avoid the need for complex #ifdef
  * directives.  Suppress the warning in clang as well by using "unused"
  * function attribute, which is redundant but not harmful for gcc.
- * Prefer gnu_inline, so that extern inline functions do not emit an
- * externally visible function. This makes extern inline behave as per gnu89
- * semantics rather than c99. This prevents multiple symbol definition errors
- * of extern inline functions at link time.
- * A lot of inline functions can cause havoc with function tracing.
  */
 #if !defined(CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING) ||		\
     !defined(CONFIG_OPTIMIZE_INLINING) || (__GNUC__ < 4)
-#define inline \
-	inline __attribute__((always_inline, unused)) notrace __gnu_inline
+#define inline inline		__attribute__((always_inline,unused)) notrace
+#define __inline__ __inline__	__attribute__((always_inline,unused)) notrace
+#define __inline __inline	__attribute__((always_inline,unused)) notrace
 #else
-#define inline inline		__attribute__((unused)) notrace __gnu_inline
+/* A lot of inline functions can cause havoc with function tracing */
+#define inline inline		__attribute__((unused)) notrace
+#define __inline__ __inline__	__attribute__((unused)) notrace
+#define __inline __inline	__attribute__((unused)) notrace
 #endif
 
 #define __always_inline	inline __attribute__((always_inline))
@@ -96,7 +95,6 @@
 #ifdef RETPOLINE
 #define __noretpoline __attribute__((indirect_branch("keep")))
 #endif
-
 
 /*
  * it doesn't make sense on ARM (currently the only user of __naked)
