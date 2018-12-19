@@ -394,10 +394,10 @@ LINUXINCLUDE    := \
 LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wall -Wundef -Wno-strict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
+		   -Wno-format-security -ffast-math -march=armv8.3-a+crypto -mtune=kryo\
 		   -std=gnu89
 #GCC 5.x.x
 KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
@@ -410,8 +410,7 @@ KBUILD_CFLAGS += -fdiagnostics-color=always -fdiagnostics-show-option \
 #GCC 6.x.x
 KBUILD_CFLAGS += -Wno-misleading-indentation -Wno-shift-overflow 
 #GCC 7.x.x
-KBUILD_CFLAGS += -Wno-duplicate-decl-specifier -Wno-memset-elt-size -Wno-bool-operation \
-                 -Wno-switch-unreachable
+KBUILD_CFLAGS += -Wno-duplicate-decl-specifier
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
@@ -552,6 +551,13 @@ KBUILD_CFLAGS += $(call cc-option, -mno-global-merge,)
 KBUILD_CFLAGS += $(call cc-option, -fcatch-undefined-behavior)
 KBUILD_CFLAGS += $(call cc-option, -no-integrated-as)
 KBUILD_AFLAGS += $(call cc-option, -no-integrated-as)
+KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
+		 -Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
+		 -Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
+		 -Wno-undefined-optimized -fno-integrated-as -Wno-gnu-variable-sized-type-not-at-end\
+     	         -Wno-gnu-folding-constant -Wno-tautological-compare -Wno-address-of-packed-member\
+                 -Wno-tautological-pointer-compare -Wno-gnu-designator -Wno-pointer-bool-conversion\
+        	 -Wno-tautological-constant-out-of-range-compare\
 else
 
 # These warnings generated too much noise in a regular build.
