@@ -1077,16 +1077,17 @@ schedtune_boostgroup_release(struct schedtune *st)
 	struct boost_groups *bg;
 	int cpu;
 
+#ifdef CONFIG_DYNAMIC_STUNE_BOOST
+	/* Free dynamic boost slots */
+	boost_slots_release(st);
+#endif // CONFIG_DYNAMIC_STUNE_BOOST
+
 	/* Reset per CPUs boost group support */
 	for_each_possible_cpu(cpu) {
 		bg = &per_cpu(cpu_boost_groups, cpu);
 		bg->group[st->idx].valid = false;
 		bg->group[st->idx].boost = 0;
 	}
-#ifdef CONFIG_DYNAMIC_STUNE_BOOST
-	/* Free dynamic boost slots */
-	boost_slots_release(st);
-#endif // CONFIG_DYNAMIC_STUNE_BOOST
 	/* Keep track of allocated boost groups */
 	allocated_group[st->idx] = NULL;
 }
