@@ -4507,7 +4507,7 @@ irqreturn_t smblib_handle_icl_change(int irq, void *data)
 			delay = 0;
 
 		cancel_delayed_work_sync(&chg->icl_change_work);
-		queue_delayed_work(system_power_efficent_wq, &chg->icl_change_work,
+		queue_delayed_work(system_power_efficient_wq, &chg->icl_change_work,
 						msecs_to_jiffies(delay));
 	}
 
