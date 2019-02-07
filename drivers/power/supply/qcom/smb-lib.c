@@ -202,7 +202,7 @@ static void smblib_monitor_low_temp_work(struct work_struct *work)
 			jeita_cc_delta_ua = 0;
 		}
 	}
-	schedule_delayed_work(&chg->monitor_low_temp_work,
+	queue_delayed_work(system_power_efficient_wq, &chg->monitor_low_temp_work,
 				msecs_to_jiffies(CHG_MONITOR_WORK_DELAY_MS));
 
 }
@@ -2455,7 +2455,7 @@ static void smblib_reg_work(struct work_struct *work)
 	rc = smblib_get_prop_usb_present(chg, &val);
 	if (rc < 0) {
 		pr_err("Couldn't get usb present rc=%d\n", rc);
-		schedule_delayed_work(&chg->reg_work,
+		queue_delayed_work(system_power_efficient_wq, &chg->reg_work,
 			NOT_CHARGING_PERIOD_S * HZ);
 		return;
 	}
@@ -2533,11 +2533,11 @@ static void smblib_reg_work(struct work_struct *work)
 		smblib_dbg(chg, PR_OEM, "Type-C orientation[%d], Type-C mode[%d], Real Charge Type[%d]\n",
                                                         typec_orientation, typec_mode, charge_type);
 
-		schedule_delayed_work(&chg->reg_work,
+		queue_delayed_work(system_power_efficient_wq, &chg->reg_work,
 			CHARGING_PERIOD_S * HZ);
 	}
 	else
-		schedule_delayed_work(&chg->reg_work,
+		queue_delayed_work(system_power_efficient_wq, &chg->reg_work,
 			NOT_CHARGING_PERIOD_S * HZ);
 }
 #ifdef CONFIG_THERMAL
@@ -2975,7 +2975,8 @@ int smblib_set_prop_wireless_wakelock(struct smb_charger *chg,
 {
 	if (val->intval) {
 		vote(chg->awake_votable, DC_AWAKE_VOTER, true, 0);
-		schedule_delayed_work(&chg->dc_input_current_work,
+		queue_delayed_work(system_power_efficient_wq,
+			&chg->dc_input_current_work,
 						msecs_to_jiffies(100));
 	} else {
 		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
@@ -4403,7 +4404,8 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 					msecs_to_jiffies(CC_FLOAT_WORK_START_DELAY_MS));
 		*/
 
-		schedule_delayed_work(&chg->typec_reenable_work, msecs_to_jiffies(300));
+		queue_delayed_work(system_power_efficient_wq,
+			&chg->typec_reenable_work, msecs_to_jiffies(300));
 
 		/* vbus rising when APSD was disabled and PD_ACTIVE = 0 */
 		if (get_effective_result(chg->apsd_disable_votable) &&
@@ -4505,7 +4507,7 @@ irqreturn_t smblib_handle_icl_change(int irq, void *data)
 			delay = 0;
 
 		cancel_delayed_work_sync(&chg->icl_change_work);
-		schedule_delayed_work(&chg->icl_change_work,
+		queue_delayed_work(system_power_efficent_wq, &chg->icl_change_work,
 						msecs_to_jiffies(delay));
 	}
 
@@ -4672,7 +4674,8 @@ static void smblib_handle_hvdcp_3p0_auth_done(struct smb_charger *chg,
 		else
 			current_ua = DCP_CURRENT_UA;
 		if (!chg->check_vbus_once) {
-			schedule_delayed_work(&chg->check_vbus_work,
+			queue_delayed_work(system_power_efficient_wq,
+				&chg->check_vbus_work,
 					msecs_to_jiffies(CHECK_VBUS_WORK_DELAY_MS));
 			chg->check_vbus_once = true;
 		}
@@ -4863,7 +4866,8 @@ static void smblib_handle_apsd_done(struct smb_charger *chg, bool rising)
 		break;
 	case DCP_CHARGER_BIT:
 		if (chg->wa_flags & QC_CHARGER_DETECTION_WA_BIT)
-			schedule_delayed_work(&chg->hvdcp_detect_work,
+			queue_delayed_work(system_power_efficient_wq,
+				&chg->hvdcp_detect_work,
 					      msecs_to_jiffies(HVDCP_DET_MS));
 		break;
 	default:
@@ -5447,7 +5451,8 @@ static void smblib_handle_typec_cc_state_change(struct smb_charger *chg)
 				smblib_wireless_set_enable(chg, false);
 		}
 		smblib_handle_typec_insertion(chg);
-		schedule_delayed_work(&chg->charger_type_recheck, msecs_to_jiffies(20000));
+		queue_delayed_work(system_power_efficient_wq,
+			&chg->charger_type_recheck, msecs_to_jiffies(20000));
 	} else if (chg->typec_present &&
 				chg->typec_mode == POWER_SUPPLY_TYPEC_NONE) {
 		cancel_delayed_work_sync(&chg->charger_type_recheck);
@@ -5503,7 +5508,8 @@ static void smblib_dc_input_current_work(struct work_struct *work)
 		}
 	}
 	chg->dc_input_current_now = ret;
-	schedule_delayed_work(&chg->dc_input_current_work, msecs_to_jiffies(GET_DC_CURR_MS));
+	queue_delayed_work(system_power_efficient_wq,
+		&chg->dc_input_current_work, msecs_to_jiffies(GET_DC_CURR_MS));
 }
 
 void smblib_usb_typec_change(struct smb_charger *chg)
@@ -5537,7 +5543,8 @@ irqreturn_t smblib_handle_usb_typec_change(int irq, void *data)
 		cancel_delayed_work_sync(&chg->uusb_otg_work);
 		vote(chg->awake_votable, OTG_DELAY_VOTER, true, 0);
 		smblib_dbg(chg, PR_INTERRUPT, "Scheduling OTG work\n");
-		schedule_delayed_work(&chg->uusb_otg_work,
+		queue_delayed_work(system_power_efficient_wq,
+			&chg->uusb_otg_work,
 				msecs_to_jiffies(chg->otg_delay_ms));
 		return IRQ_HANDLED;
 	}
@@ -5591,7 +5598,8 @@ irqreturn_t smblib_handle_dc_plugin(int irq, void *data)
 		val.intval = chg->dc_temp_level;
 		power_supply_set_property(chg->batt_psy, POWER_SUPPLY_PROP_DC_THERMAL_LEVELS, &val);
 #endif
-		schedule_delayed_work(&chg->dc_input_current_work, msecs_to_jiffies(2000));
+		queue_delayed_work(system_power_efficient_wq,
+			&chg->dc_input_current_work, msecs_to_jiffies(2000));
 	} else if (chg->idtp_psy) {
 		cancel_delayed_work_sync(&chg->dc_input_current_work);
 		val.intval = false;
@@ -5623,7 +5631,8 @@ irqreturn_t smblib_handle_high_duty_cycle(int irq, void *data)
 	if (chg->irq_info[HIGH_DUTY_CYCLE_IRQ].irq)
 		disable_irq_nosync(chg->irq_info[HIGH_DUTY_CYCLE_IRQ].irq);
 
-	schedule_delayed_work(&chg->clear_hdc_work, msecs_to_jiffies(60));
+	queue_delayed_work(system_power_efficient_wq,
+		&chg->clear_hdc_work, msecs_to_jiffies(60));
 
 	return IRQ_HANDLED;
 }
@@ -5689,7 +5698,8 @@ irqreturn_t smblib_handle_switcher_power_ok(int irq, void *data)
 			 * permanently suspending the input if the boost-back
 			 * condition is unintentionally hit.
 			 */
-			schedule_delayed_work(&chg->bb_removal_work,
+			queue_delayed_work(system_power_efficient_wq,
+				&chg->bb_removal_work,
 				msecs_to_jiffies(BOOST_BACK_UNVOTE_DELAY_MS));
 		}
 	}
@@ -5942,7 +5952,8 @@ static void smblib_otg_oc_work(struct work_struct *work)
 	 * triggered then it is likely that the software based soft start was
 	 * successful and the VBUS < 1V restriction should be re-enabled.
 	 */
-	schedule_delayed_work(&chg->otg_ss_done_work, msecs_to_jiffies(500));
+	queue_delayed_work(system_power_efficient_wq,
+		&chg->otg_ss_done_work, msecs_to_jiffies(500));
 
 	rc = _smblib_vbus_regulator_disable(chg->vbus_vreg->rdev);
 	if (rc < 0) {
@@ -6209,7 +6220,8 @@ static void smblib_charger_type_recheck(struct work_struct *work)
 
 check_next:
 	check_count++;
-	schedule_delayed_work(&chg->charger_type_recheck, msecs_to_jiffies(recheck_time));
+	queue_delayed_work(system_power_efficient_wq,
+		&chg->charger_type_recheck, msecs_to_jiffies(recheck_time));
 }
 
 static void smblib_typec_reenable_work(struct work_struct *work)
@@ -6254,7 +6266,8 @@ static void smblib_typec_reenable_work(struct work_struct *work)
 unlock:
 	mutex_unlock(&chg->lock);
 
-	schedule_delayed_work(&chg->cc_float_charge_work, msecs_to_jiffies(200));
+	queue_delayed_work(system_power_efficient_wq,
+		&chg->cc_float_charge_work, msecs_to_jiffies(200));
 }
 
 
