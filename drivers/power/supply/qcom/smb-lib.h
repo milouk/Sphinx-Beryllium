@@ -82,6 +82,7 @@ enum print_reason {
 #define HVDCP2_ICL_VOTER		"HVDCP2_ICL_VOTER"
 #define OV_VOTER			"OV_VOTER"
 #define FG_ESR_VOTER			"FG_ESR_VOTER"
+#define FCC_STEPPER_VOTER		"FCC_STEPPER_VOTER"
 #define DCIN_USER_VOTER			"DCIN_USER_VOTER"
 #define UNSTANDARD_QC2_VOTER		"UNSTANDARD_QC2_VOTER"
 #define FCC_STEPPER_VOTER		"FCC_STEPPER_VOTER"
@@ -389,6 +390,7 @@ struct smb_charger {
 	bool			step_chg_enabled;
 	bool			sw_jeita_enabled;
 	bool			wireless_charging_flag;
+	bool			wireless_support;
 	bool			is_hdc;
 	bool			chg_done;
 	bool			connector_type;

@@ -57,6 +57,11 @@ enum dsi_backlight_type {
 	DSI_BACKLIGHT_MAX,
 };
 
+enum bl_update_flag {
+	BL_UPDATE_DELAY_UNTIL_FIRST_FRAME,
+	BL_UPDATE_NONE,
+};
+
 enum {
 	MODE_GPIO_NOT_VALID = 0,
 	MODE_SEL_DUAL_PORT,
@@ -71,10 +76,18 @@ enum dsi_dms_mode {
 };
 
 struct dsi_dfps_capabilities {
-	bool dfps_support;
 	enum dsi_dfps_type type;
 	u32 min_refresh_rate;
 	u32 max_refresh_rate;
+	u32 *dfps_list;
+	u32 dfps_list_len;
+	bool dfps_support;
+};
+
+struct dsi_dyn_clk_caps {
+	bool dyn_clk_support;
+	u32 *bit_clk_list;
+	u32 bit_clk_list_len;
 };
 
 struct dsi_pinctrl_info {
@@ -91,6 +104,7 @@ struct dsi_panel_phy_props {
 
 struct dsi_backlight_config {
 	enum dsi_backlight_type type;
+	enum bl_update_flag bl_update;
 
 	u32 bl_min_level;
 	u32 bl_max_level;
@@ -106,6 +120,7 @@ struct dsi_backlight_config {
 	u32 pwm_pmic_bank;
 	u32 pwm_period_usecs;
 	int pwm_gpio;
+	int ss_panel_id;
 
 	/* WLED params */
 	struct led_trigger *wled;
@@ -182,6 +197,7 @@ struct dsi_panel {
 	enum dsi_op_mode panel_mode;
 
 	struct dsi_dfps_capabilities dfps_caps;
+	struct dsi_dyn_clk_caps dyn_clk_caps;
 	struct dsi_panel_phy_props phy_props;
 
 	struct dsi_display_mode *cur_mode;
@@ -226,6 +242,7 @@ struct dsi_panel {
 	struct dsi_read_config xy_coordinate_cmds;
 	struct dsi_read_config max_luminance_cmds;
 	struct dsi_read_config max_luminance_valid_cmds;
+	struct dsi_read_config panel_ddic_id_cmds;
 	u8 panel_read_data[BUF_LEN_MAX];
 	u32 panel_bl_info[PANEL_BL_INFO_NUM];
 
@@ -233,6 +250,9 @@ struct dsi_panel {
 
 	s32 backlight_delta;
 	bool fod_hbm_enabled;
+	bool in_aod;
+	u32 doze_backlight_threshold;
+	ktime_t fod_hbm_off_time;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
