@@ -682,6 +682,10 @@ CONFIG_ATH9K_HTC=y
 CONFIG_WIREGUARD=y
 # CONFIG_WIREGUARD_DEBUG is not set
 
+#
+# WQ Power Saving
+#
+CONFIG_WQ_POWER_EFFICIENT_DEFAULT=y
 
 #
 # Boeffla Wakelocks
