@@ -773,6 +773,17 @@ ifdef CONFIG_PROFILE_ALL_BRANCHES
 KBUILD_CFLAGS	+= -O3 $(call cc-disable-warning,maybe-uninitialized,)
 else
 KBUILD_CFLAGS   += -O3
+
+ifdef CONFIG_POLLY_CLANG
+KBUILD_CFLAGS	+= -mllvm -polly \
+		   -mllvm -polly-run-dce \
+		   -mllvm -polly-run-inliner \
+		   -mllvm -polly-opt-fusion=max \
+		   -mllvm -polly-ast-use-context \
+		   -mllvm -polly-detect-keep-going \
+		   -mllvm -polly-vectorizer=stripmine \
+		   -mllvm -polly-invariant-load-hoisting
+endif
 endif
 endif
 
