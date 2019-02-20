@@ -492,7 +492,7 @@ static void ufshpb_map_req_compl_fn(struct request *req, int error)
 							&hpb->lh_map_req_retry);
 				spin_unlock(&hpb->hpb_lock);
 
-				schedule_delayed_work(&hpb->ufshpb_retry_work,
+				queue_delayed_work(system_power_efficient_wq, &hpb->ufshpb_retry_work,
 							msecs_to_jiffies(5000));
 				return;
 			}
@@ -2418,7 +2418,7 @@ void ufshpb_init_handler(struct work_struct *work)
 	if (hba->host->async_scan == 1) {
 		spin_unlock_irqrestore(hba->host->host_lock, flags);
 		mutex_unlock(&hba->host->scan_mutex);
-		schedule_delayed_work(&hba->ufshpb_init_work,
+		queue_delayed_work(system_power_efficient_wq, &hba->ufshpb_init_work,
 						msecs_to_jiffies(100));
 		return;
 	}
