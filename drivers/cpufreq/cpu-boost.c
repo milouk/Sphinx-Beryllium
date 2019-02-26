@@ -234,6 +234,7 @@ static void do_input_boost_rem(struct work_struct *work)
 #ifdef CONFIG_DYNAMIC_STUNE_BOOST
 static void do_dynamic_stune_boost_rem(struct work_struct *work)
 {
+	unsigned int ret;
 	/* Reset dynamic stune boost value to the default value */
 	if (stune_boost_active) {
 		reset_stune_boost("top-app", boost_slot);
