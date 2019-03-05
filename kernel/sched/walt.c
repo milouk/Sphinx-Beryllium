@@ -3286,16 +3286,16 @@ void walt_irq_work(struct irq_work *irq_work)
 
 	for_each_sched_cluster(cluster) {
 		for_each_cpu(cpu, &cluster->cpus) {
-			int nflag = 0;
+			int nflag = flag;
 
 			rq = cpu_rq(cpu);
 
 			if (is_migration) {
 				if (rq->notif_pending) {
-					nflag = SCHED_CPUFREQ_INTERCLUSTER_MIG;
+					nflag |= SCHED_CPUFREQ_INTERCLUSTER_MIG;
 					rq->notif_pending = false;
 				} else {
-					nflag = SCHED_CPUFREQ_FORCE_UPDATE;
+					nflag |= SCHED_CPUFREQ_FORCE_UPDATE;
 				}
 			}
 
