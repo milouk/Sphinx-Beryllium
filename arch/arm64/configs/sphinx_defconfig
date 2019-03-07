@@ -756,3 +756,9 @@ CONFIG_FRANDOM=y
 #Sound Control
 #
 CONFIG_SOUND_CONTROL=y
+
+
+#
+#K-Lapse
+#
+CONFIG_KLAPSE=y
