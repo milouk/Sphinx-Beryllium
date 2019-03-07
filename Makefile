@@ -672,8 +672,8 @@ KBUILD_CFLAGS += $(call cc-option, -fcatch-undefined-behavior)
 KBUILD_CFLAGS += $(call cc-option, -no-integrated-as)
 KBUILD_CFLAGS += -Wno-sometimes-uninitialized -Wno-asm-operand-widths \
 		 -Wno-typedef-redefinition -Wno-non-literal-null-conversion -Wno-header-guard \
-		 -Wno-constant-conversion -Wno-enum-conversion -Wno-vectorizer-no-neon\
-		 -Wno-undefined-optimized -fno-integrated-as -Wno-gnu-variable-sized-type-not-at-end\
+		 -Wno-constant-conversion -Wno-enum-conversion\
+		 -fno-integrated-as -Wno-gnu-variable-sized-type-not-at-end\
      	         -Wno-gnu-folding-constant -Wno-tautological-compare -Wno-address-of-packed-member\
                  -Wno-tautological-pointer-compare -Wno-gnu-designator -Wno-pointer-bool-conversion\
         	 -Wno-tautological-constant-out-of-range-compare\
