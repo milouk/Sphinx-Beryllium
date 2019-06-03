@@ -2462,7 +2462,6 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel,
 	panel->bl_config.dcs_type_ss = of_property_read_bool(of_node,
 						"qcom,mdss-dsi-bl-dcs-type-ss");
 
-
 	data = of_get_property(of_node, "qcom,bl-update-flag", NULL);
 	if (!data) {
 		panel->bl_config.bl_update = BL_UPDATE_NONE;
