@@ -392,7 +392,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wno-strict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
-		   -Wno-format-security -ffast-math -march=armv8.3-a+crypto -mtune=kryo\
+		   -Wno-format-security -ffast-math\
 		   -std=gnu89
 
 #GCC 5.x.x
