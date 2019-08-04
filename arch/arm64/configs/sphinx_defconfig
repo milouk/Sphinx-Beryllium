@@ -765,6 +765,13 @@ CONFIG_KLAPSE=y
 
 
 #
+# Misc
+#
+CONFIG_EXPOSURE_ADJUSTMENT=y
+
+
+
+#
 # Controllers
 #
 CONFIG_INPUT_FF_MEMLESS=y
