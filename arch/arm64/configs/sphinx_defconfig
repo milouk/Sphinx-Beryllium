@@ -679,13 +679,6 @@ CONFIG_ATH9K=y
 CONFIG_ATH9K_PCI=y
 CONFIG_ATH9K_HTC=y
 
-
-#
-# WireGuard Support
-#
-CONFIG_WIREGUARD=y
-# CONFIG_WIREGUARD_DEBUG is not set
-
 #
 # WQ Power Saving
 #
